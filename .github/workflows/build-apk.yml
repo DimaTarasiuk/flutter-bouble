@@ -16,8 +16,11 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
+      - name: Remove any pre-existing platform folders (avoid stale cache)
+        run: rm -rf android build
+
       - name: Generate platform files (android/ios/etc)
-        run: flutter create --project-name login_app --org com.example .
+        run: flutter create --project-name login_app --org com.example --platforms=android .
 
       - name: Install dependencies
         run: flutter pub get
@@ -44,8 +47,13 @@ jobs:
       - name: Enable Windows desktop support
         run: flutter config --enable-windows-desktop
 
+      - name: Remove any pre-existing platform folders (avoid stale CMake cache)
+        run: |
+          Remove-Item -Recurse -Force windows -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
+
       - name: Generate platform files
-        run: flutter create --project-name login_app --org com.example .
+        run: flutter create --project-name login_app --org com.example --platforms=windows .
 
       - name: Install dependencies
         run: flutter pub get
@@ -76,8 +84,11 @@ jobs:
       - name: Enable macOS desktop support
         run: flutter config --enable-macos-desktop
 
+      - name: Remove any pre-existing platform folders (avoid stale cache)
+        run: rm -rf macos build
+
       - name: Generate platform files
-        run: flutter create --project-name login_app --org com.example .
+        run: flutter create --project-name login_app --org com.example --platforms=macos .
 
       - name: Install dependencies
         run: flutter pub get
