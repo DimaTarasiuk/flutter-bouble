@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK and Desktop
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build:
+  android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,5 +28,70 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Enable Windows desktop support
+        run: flutter config --enable-windows-desktop
+
+      - name: Generate platform files
+        run: flutter create --project-name login_app --org com.example .
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows exe
+        run: flutter build windows --release
+
+      - name: Zip the build
+        run: |
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath login_app-windows.zip
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-windows
+          path: login_app-windows.zip
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Enable macOS desktop support
+        run: flutter config --enable-macos-desktop
+
+      - name: Generate platform files
+        run: flutter create --project-name login_app --org com.example .
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS app
+        run: flutter build macos --release
+
+      - name: Zip the build
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../login_app-macos.zip *.app
+
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-macos
+          path: login_app-macos.zip
