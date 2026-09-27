@@ -15,9 +15,11 @@ jobs:
         with:
           channel: 'stable'
 
-      # Пересоздаем файлы платформы без перезаписи pubspec.yaml
-      - name: Generate platform files (android)
-        run: flutter create --project-name login_app --org com.example --platforms=android .
+      - name: Generate platform files and keep dependencies
+        run: |
+          cp pubspec.yaml pubspec.yaml.bak
+          flutter create --project-name login_app --org com.example --platforms=android .
+          mv pubspec.yaml.bak pubspec.yaml
 
       - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
         run: |
@@ -47,8 +49,11 @@ jobs:
       - name: Enable Windows desktop support
         run: flutter config --enable-windows-desktop
 
-      - name: Generate platform files (windows)
-        run: flutter create --project-name login_app --org com.example --platforms=windows .
+      - name: Generate platform files and keep dependencies
+        run: |
+          Copy-Item pubspec.yaml pubspec.yaml.bak
+          flutter create --project-name login_app --org com.example --platforms=windows .
+          Move-Item pubspec.yaml.bak pubspec.yaml -Force
 
       - name: Install dependencies
         run: flutter pub get
@@ -81,8 +86,11 @@ jobs:
       - name: Enable macOS desktop support
         run: flutter config --enable-macos-desktop
 
-      - name: Generate platform files (macos)
-        run: flutter create --project-name login_app --org com.example --platforms=macos .
+      - name: Generate platform files and keep dependencies
+        run: |
+          cp pubspec.yaml pubspec.yaml.bak
+          flutter create --project-name login_app --org com.example --platforms=macos .
+          mv pubspec.yaml.bak pubspec.yaml
 
       - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
         run: |
