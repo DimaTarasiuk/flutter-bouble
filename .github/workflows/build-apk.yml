@@ -15,11 +15,13 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Remove any pre-existing platform folders (avoid stale cache)
-        run: rm -rf android build
-
-      - name: Generate platform files (android/ios/etc)
+      # Пересоздаем файлы платформы без перезаписи pubspec.yaml
+      - name: Generate platform files (android)
         run: flutter create --project-name login_app --org com.example --platforms=android .
+
+      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
+        run: |
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
       - name: Install dependencies
         run: flutter pub get
@@ -45,12 +47,7 @@ jobs:
       - name: Enable Windows desktop support
         run: flutter config --enable-windows-desktop
 
-      - name: Remove any pre-existing platform folders (avoid stale CMake cache)
-        run: |
-          Remove-Item -Recurse -Force windows -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
-
-      - name: Generate platform files
+      - name: Generate platform files (windows)
         run: flutter create --project-name login_app --org com.example --platforms=windows .
 
       - name: Install dependencies
@@ -84,11 +81,12 @@ jobs:
       - name: Enable macOS desktop support
         run: flutter config --enable-macos-desktop
 
-      - name: Remove any pre-existing platform folders (avoid stale cache)
-        run: rm -rf macos build
-
-      - name: Generate platform files
+      - name: Generate platform files (macos)
         run: flutter create --project-name login_app --org com.example --platforms=macos .
+
+      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
+        run: |
+          plutil -replace NSAppTransportSecurity -xml '<dict><key>NSAllowsArbitraryLoads</key><true/></dict>' macos/Runner/Info.plist
 
       - name: Install dependencies
         run: flutter pub get
