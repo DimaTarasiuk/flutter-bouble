@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'config.dart';
@@ -7,7 +8,8 @@ import 'session_store.dart';
 class ApiException implements Exception {
   final int? statusCode;
   final String code;
-  ApiException(this.statusCode, this.code);
+  final String? debugDetail;
+  ApiException(this.statusCode, this.code, {this.debugDetail});
 
   @override
   String toString() => code;
@@ -40,6 +42,8 @@ class ApiException implements Exception {
         return 'Некоректний запит';
       case 'network_error':
         return 'Немає з\'єднання з сервером. Перевір адресу сервера і мережу.';
+      case 'timeout':
+        return 'Сервер довго не відповідає (можливо, він ще "прокидається" після сну). Спробуй ще раз через кілька секунд.';
       default:
         return 'Сталася помилка. Спробуйте ще раз.';
     }
@@ -79,9 +83,11 @@ class ApiClient {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'username': username, 'password': password}),
           )
-          .timeout(const Duration(seconds: 15));
-    } catch (_) {
-      throw ApiException(null, 'network_error');
+          .timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw ApiException(null, 'timeout');
+    } catch (e) {
+      throw ApiException(null, 'network_error', debugDetail: e.toString());
     }
 
     if (resp.statusCode == 200) {
@@ -111,9 +117,11 @@ class ApiClient {
               'gender': gender,
             }),
           )
-          .timeout(const Duration(seconds: 15));
-    } catch (_) {
-      throw ApiException(null, 'network_error');
+          .timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw ApiException(null, 'timeout');
+    } catch (e) {
+      throw ApiException(null, 'network_error', debugDetail: e.toString());
     }
 
     if (resp.statusCode == 201) {
@@ -129,9 +137,11 @@ class ApiClient {
     try {
       resp = await http
           .get(await _uri('/api/me'), headers: await _authHeaders())
-          .timeout(const Duration(seconds: 15));
-    } catch (_) {
-      throw ApiException(null, 'network_error');
+          .timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw ApiException(null, 'timeout');
+    } catch (e) {
+      throw ApiException(null, 'network_error', debugDetail: e.toString());
     }
 
     if (resp.statusCode == 200) {
@@ -146,7 +156,7 @@ class ApiClient {
   Future<List<Conversation>> conversations() async {
     final resp = await http
         .get(await _uri('/api/conversations'), headers: await _authHeaders())
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 60));
     if (resp.statusCode == 200) {
       final list = jsonDecode(resp.body) as List;
       return list
@@ -160,7 +170,7 @@ class ApiClient {
     final resp = await http
         .get(await _uri('/api/announcements/pending'),
             headers: await _authHeaders())
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 60));
     if (resp.statusCode == 200) {
       final list = jsonDecode(resp.body) as List;
       return list
@@ -174,7 +184,7 @@ class ApiClient {
     final resp = await http
         .post(await _uri('/api/announcements/$id/ack'),
             headers: await _authHeaders())
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 60));
     if (resp.statusCode != 200 && resp.statusCode != 204) {
       throw ApiException(resp.statusCode, _extractError(resp));
     }
