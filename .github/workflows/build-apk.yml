@@ -1,11 +1,10 @@
-name: Build and Update Release
+name: Build APK and Desktop
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch: {}
 
-# Даємо дозволи на перезапис релізів
 permissions:
   contents: write
 
@@ -19,13 +18,13 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Generate platform files and keep dependencies
-        run: |
-          cp pubspec.yaml pubspec.yaml.bak
-          flutter create --project-name login_app --org com.example --platforms=android .
-          mv pubspec.yaml.bak pubspec.yaml
+      - name: Remove any pre-existing platform folders (avoid stale cache)
+        run: rm -rf android build
 
-      - name: Allow cleartext traffic
+      - name: Generate platform files (android/ios/etc)
+        run: flutter create --project-name login_app --org com.example --platforms=android .
+
+      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
         run: |
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
@@ -35,14 +34,11 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
-      # Автоматичне створення / перезапис релізу 'latest'
-      - name: Update Latest Release (Android)
-        uses: softprops/action-gh-release@v2
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: latest
-          name: "Latest Auto-Build"
-          body: "Автоматична збірка останньої версії з гілки main."
-          files: build/app/outputs/flutter-apk/app-release.apk
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   windows:
     runs-on: windows-2022
@@ -56,14 +52,19 @@ jobs:
       - name: Enable Windows desktop support
         run: flutter config --enable-windows-desktop
 
-      - name: Generate platform files and keep dependencies
+      - name: Remove any pre-existing platform folders (avoid stale CMake cache)
         run: |
-          Copy-Item pubspec.yaml pubspec.yaml.bak
-          flutter create --project-name login_app --org com.example --platforms=windows .
-          Move-Item pubspec.yaml.bak pubspec.yaml -Force
+          Remove-Item -Recurse -Force windows -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
+
+      - name: Generate platform files
+        run: flutter create --project-name login_app --org com.example --platforms=windows .
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Show Flutter/Visual Studio diagnostics
+        run: flutter doctor -v
 
       - name: Build Windows exe
         run: flutter build windows --release
@@ -72,12 +73,11 @@ jobs:
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath login_app-windows.zip
 
-      - name: Update Latest Release (Windows)
-        uses: softprops/action-gh-release@v2
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: latest
-          name: "Latest Auto-Build"
-          files: login_app-windows.zip
+          name: app-release-windows
+          path: login_app-windows.zip
 
   macos:
     runs-on: macos-latest
@@ -91,13 +91,13 @@ jobs:
       - name: Enable macOS desktop support
         run: flutter config --enable-macos-desktop
 
-      - name: Generate platform files and keep dependencies
-        run: |
-          cp pubspec.yaml pubspec.yaml.bak
-          flutter create --project-name login_app --org com.example --platforms=macos .
-          mv pubspec.yaml.bak pubspec.yaml
+      - name: Remove any pre-existing platform folders (avoid stale cache)
+        run: rm -rf macos build
 
-      - name: Allow cleartext traffic
+      - name: Generate platform files
+        run: flutter create --project-name login_app --org com.example --platforms=macos .
+
+      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
         run: |
           plutil -replace NSAppTransportSecurity -xml '<dict><key>NSAllowsArbitraryLoads</key><true/></dict>' macos/Runner/Info.plist
 
@@ -107,14 +107,43 @@ jobs:
       - name: Build macOS app
         run: flutter build macos --release
 
-      - name: Zip the build
+      - name: Ad-hoc code sign (fixes "app is damaged" / silent kill on Apple Silicon)
+        run: |
+          APP_PATH=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app")
+          echo "Signing: $APP_PATH"
+          codesign --force --deep --sign - "$APP_PATH"
+
+      - name: Package with ditto (preserves bundle structure, unlike plain zip)
         run: |
           cd build/macos/Build/Products/Release
-          zip -r ../../../../../login_app-macos.zip *.app
+          APP_NAME=$(find . -maxdepth 1 -name "*.app" -exec basename {} \;)
+          ditto -c -k --keepParent "$APP_NAME" ../../../../../login_app-macos.zip
 
-      - name: Update Latest Release (macOS)
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-macos
+          path: login_app-macos.zip
+
+  release:
+    needs: [android, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten into one folder
+        run: |
+          mkdir -p release-files
+          cp artifacts/app-release-apk/app-release.apk release-files/
+          cp artifacts/app-release-windows/login_app-windows.zip release-files/
+          cp artifacts/app-release-macos/login_app-macos.zip release-files/
+
+      - name: Publish (or update) the "latest" release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Latest Auto-Build"
-          files: login_app-macos.zip
+          name: Latest build
+          files: release-files/*
