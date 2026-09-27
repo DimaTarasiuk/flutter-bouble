@@ -1,8 +1,11 @@
-name: Build APK and Desktop
+name: Build and Create Release
 
 on:
   push:
     branches: [ main, master ]
+  # Спрацьовує автоматично при створенні нового релізу на GitHub
+  release:
+    types: [ created ]
   workflow_dispatch: {}
 
 jobs:
@@ -21,7 +24,7 @@ jobs:
           flutter create --project-name login_app --org com.example --platforms=android .
           mv pubspec.yaml.bak pubspec.yaml
 
-      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
+      - name: Allow cleartext traffic
         run: |
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
@@ -31,11 +34,18 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+      # Публікація файлу в GitHub Release
+      - name: Upload APK to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
 
   windows:
     runs-on: windows-2022
@@ -58,9 +68,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Show Flutter/Visual Studio diagnostics
-        run: flutter doctor -v
-
       - name: Build Windows exe
         run: flutter build windows --release
 
@@ -68,11 +75,18 @@ jobs:
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath login_app-windows.zip
 
-      - name: Upload Windows build
+      - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-windows
           path: login_app-windows.zip
+
+      # Публікація файлу в GitHub Release
+      - name: Upload Windows zip to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: login_app-windows.zip
 
   macos:
     runs-on: macos-latest
@@ -92,7 +106,7 @@ jobs:
           flutter create --project-name login_app --org com.example --platforms=macos .
           mv pubspec.yaml.bak pubspec.yaml
 
-      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
+      - name: Allow cleartext traffic
         run: |
           plutil -replace NSAppTransportSecurity -xml '<dict><key>NSAllowsArbitraryLoads</key><true/></dict>' macos/Runner/Info.plist
 
@@ -107,8 +121,15 @@ jobs:
           cd build/macos/Build/Products/Release
           zip -r ../../../../../login_app-macos.zip *.app
 
-      - name: Upload macOS build
+      - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-macos
           path: login_app-macos.zip
+
+      # Публікація файлу в GitHub Release
+      - name: Upload macOS zip to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: login_app-macos.zip
