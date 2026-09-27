@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../config.dart';
@@ -19,6 +20,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _loading = false;
   String? _error;
+  String? _statusHint;
+  String? _debugDetail;
 
   @override
   void dispose() {
@@ -39,6 +42,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _statusHint = null;
+      _debugDetail = null;
+    });
+
+    final hintTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted && _loading) {
+        setState(() => _statusHint = 'Прокидаю сервер, зачекай трохи…');
+      }
     });
 
     try {
@@ -48,11 +59,20 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } on ApiException catch (e) {
-      setState(() => _error = e.userMessage);
+      setState(() {
+        _error = e.userMessage;
+        _debugDetail = e.debugDetail;
+      });
     } catch (_) {
       setState(() => _error = 'Сталася невідома помилка');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      hintTimer.cancel();
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _statusHint = null;
+        });
+      }
     }
   }
 
@@ -155,6 +175,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           _error!,
                           style: const TextStyle(color: kDangerRed, fontSize: 13.5),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      if (_debugDetail != null) ...[
+                        const SizedBox(height: 6),
+                        SelectableText(
+                          _debugDetail!,
+                          style: const TextStyle(color: kTextGray, fontSize: 10.5),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      if (_statusHint != null) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          _statusHint!,
+                          style: const TextStyle(color: kTextGray, fontSize: 13.5),
                           textAlign: TextAlign.center,
                         ),
                       ],
