@@ -1,12 +1,13 @@
-name: Build and Create Release
+name: Build and Update Release
 
 on:
   push:
     branches: [ main, master ]
-  # Спрацьовує автоматично при створенні нового релізу на GitHub
-  release:
-    types: [ created ]
   workflow_dispatch: {}
+
+# Даємо дозволи на перезапис релізів
+permissions:
+  contents: write
 
 jobs:
   android:
@@ -34,17 +35,13 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
-      # Публікація файлу в GitHub Release
-      - name: Upload APK to GitHub Release
-        if: github.event_name == 'release'
+      # Автоматичне створення / перезапис релізу 'latest'
+      - name: Update Latest Release (Android)
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: latest
+          name: "Latest Auto-Build"
+          body: "Автоматична збірка останньої версії з гілки main."
           files: build/app/outputs/flutter-apk/app-release.apk
 
   windows:
@@ -75,17 +72,11 @@ jobs:
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath login_app-windows.zip
 
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-windows
-          path: login_app-windows.zip
-
-      # Публікація файлу в GitHub Release
-      - name: Upload Windows zip to GitHub Release
-        if: github.event_name == 'release'
+      - name: Update Latest Release (Windows)
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: latest
+          name: "Latest Auto-Build"
           files: login_app-windows.zip
 
   macos:
@@ -121,15 +112,9 @@ jobs:
           cd build/macos/Build/Products/Release
           zip -r ../../../../../login_app-macos.zip *.app
 
-      - name: Upload macOS Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-macos
-          path: login_app-macos.zip
-
-      # Публікація файлу в GitHub Release
-      - name: Upload macOS zip to GitHub Release
-        if: github.event_name == 'release'
+      - name: Update Latest Release (macOS)
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: latest
+          name: "Latest Auto-Build"
           files: login_app-macos.zip
