@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Base URL за замовчуванням, якщо користувач ще нічого не налаштував.
 /// ЗАМІНИ на адресу свого прод-бекенду перед білдом,
 /// або онови пізніше прямо в застосунку (іконка шестерні на екрані входу).
-const String kDefaultBaseUrl = 'http://10.0.2.2:7979';
+const String kDefaultBaseUrl = 'https://bouble-chat.onrender.com';
 
 const String _prefsKey = 'base_url';
 
