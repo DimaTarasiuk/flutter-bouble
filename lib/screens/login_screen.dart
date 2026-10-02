@@ -4,10 +4,11 @@ import '../api_client.dart';
 import '../config.dart';
 import '../widgets/neu.dart';
 import 'register_screen.dart';
-import 'home_screen.dart';
+import 'home_shell.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? notice;
+  const LoginScreen({super.key, this.notice});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -22,6 +23,14 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
   String? _statusHint;
   String? _debugDetail;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.notice != null) {
+      _error = widget.notice;
+    }
+  }
 
   @override
   void dispose() {
@@ -56,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await _api.login(login, password);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomeShell()),
       );
     } on ApiException catch (e) {
       setState(() {

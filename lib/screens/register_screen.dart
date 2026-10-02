@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../widgets/neu.dart';
-import 'home_screen.dart';
+import 'home_shell.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -63,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomeShell()),
       );
     } on ApiException catch (e) {
       setState(() => _error = e.userMessage);
