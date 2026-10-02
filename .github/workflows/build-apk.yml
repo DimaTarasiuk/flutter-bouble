@@ -18,13 +18,25 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Remove any pre-existing platform folders (avoid stale cache)
+      - name: Remove any pre-existing platform folders
         run: rm -rf android build
 
-      - name: Generate platform files (android/ios/etc)
+      - name: Generate Android platform files
         run: flutter create --project-name login_app --org com.example --platforms=android .
 
-      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
+      - name: Check Android Manifest
+        run: |
+          echo "===== AndroidManifest.xml ====="
+          cat android/app/src/main/AndroidManifest.xml
+          echo "===== INTERNET permission ====="
+          if grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml; then
+            echo "INTERNET permission FOUND"
+          else
+            echo "INTERNET permission NOT FOUND"
+            exit 1
+          fi
+
+      - name: Allow cleartext HTTP traffic
         run: |
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
@@ -52,7 +64,7 @@ jobs:
       - name: Enable Windows desktop support
         run: flutter config --enable-windows-desktop
 
-      - name: Remove any pre-existing platform folders (avoid stale CMake cache)
+      - name: Remove any pre-existing platform folders
         run: |
           Remove-Item -Recurse -Force windows -ErrorAction SilentlyContinue
           Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
@@ -91,13 +103,13 @@ jobs:
       - name: Enable macOS desktop support
         run: flutter config --enable-macos-desktop
 
-      - name: Remove any pre-existing platform folders (avoid stale cache)
+      - name: Remove any pre-existing platform folders
         run: rm -rf macos build
 
       - name: Generate platform files
         run: flutter create --project-name login_app --org com.example --platforms=macos .
 
-      - name: Allow cleartext (http, no SSL) traffic — TEMPORARY until backend has HTTPS
+      - name: Allow cleartext HTTP traffic
         run: |
           plutil -replace NSAppTransportSecurity -xml '<dict><key>NSAllowsArbitraryLoads</key><true/></dict>' macos/Runner/Info.plist
 
@@ -107,13 +119,13 @@ jobs:
       - name: Build macOS app
         run: flutter build macos --release
 
-      - name: Ad-hoc code sign (fixes "app is damaged" / silent kill on Apple Silicon)
+      - name: Ad-hoc code sign
         run: |
           APP_PATH=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app")
           echo "Signing: $APP_PATH"
           codesign --force --deep --sign - "$APP_PATH"
 
-      - name: Package with ditto (preserves bundle structure, unlike plain zip)
+      - name: Package with ditto
         run: |
           cd build/macos/Build/Products/Release
           APP_NAME=$(find . -maxdepth 1 -name "*.app" -exec basename {} \;)
