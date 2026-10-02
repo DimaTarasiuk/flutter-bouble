@@ -1,52 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/tokens.dart';
 
-const Color kBg = Color(0xFFE3E7ED);
-const Color kShadowDark = Color(0xFFB9C1CE);
-const Color kShadowLight = Color(0xFFFFFFFF);
-const Color kTextDark = Color(0xFF3D4552);
-const Color kTextGray = Color(0xFF8B94A3);
-const Color kAccentBlue = Color(0xFF3B7DDD);
-const Color kDangerRed = Color(0xFFD9534F);
-
-BoxDecoration neuRaised({double radius = 24}) {
-  return BoxDecoration(
-    color: kBg,
-    borderRadius: BorderRadius.circular(radius),
-    boxShadow: [
-      BoxShadow(
-        color: kShadowDark.withOpacity(0.7),
-        offset: const Offset(6, 6),
-        blurRadius: 14,
-      ),
-      BoxShadow(
-        color: kShadowLight.withOpacity(0.9),
-        offset: const Offset(-6, -6),
-        blurRadius: 14,
-      ),
-    ],
-  );
-}
-
-BoxDecoration neuInset({double radius = 30}) {
-  return BoxDecoration(
-    color: kBg,
-    borderRadius: BorderRadius.circular(radius),
-    boxShadow: [
-      BoxShadow(
-        color: kShadowDark.withOpacity(0.6),
-        offset: const Offset(4, 4),
-        blurRadius: 8,
-        spreadRadius: -2,
-      ),
-      BoxShadow(
-        color: kShadowLight.withOpacity(0.9),
-        offset: const Offset(-4, -4),
-        blurRadius: 8,
-        spreadRadius: -2,
-      ),
-    ],
-  );
-}
+export '../theme/tokens.dart';
 
 class NeuTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -54,6 +9,10 @@ class NeuTextField extends StatelessWidget {
   final bool obscure;
   final Widget? trailing;
   final TextInputType? keyboardType;
+  final int? maxLength;
+  final int maxLines;
+  final FocusNode? focusNode;
+  final void Function(String)? onSubmitted;
 
   const NeuTextField({
     super.key,
@@ -62,27 +21,37 @@ class NeuTextField extends StatelessWidget {
     this.obscure = false,
     this.trailing,
     this.keyboardType,
+    this.maxLength,
+    this.maxLines = 1,
+    this.focusNode,
+    this.onSubmitted,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: neuInset(),
-      padding: const EdgeInsets.symmetric(horizontal: 22),
+      decoration: neuBox(inset: true, d: 4, b: 8, radius: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
+        crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: [
           Expanded(
             child: TextField(
               controller: controller,
               obscureText: obscure,
               keyboardType: keyboardType,
-              style: const TextStyle(fontSize: 16, color: kTextDark),
+              maxLength: maxLength,
+              maxLines: maxLines,
+              focusNode: focusNode,
+              onSubmitted: onSubmitted,
+              style: const TextStyle(fontSize: 16, color: kTextMain),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(color: kTextGray, fontSize: 16),
+                hintStyle: const TextStyle(color: kTextMuted, fontSize: 16),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                counterText: '',
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
           ),
@@ -109,12 +78,12 @@ class NeuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return NeuPress(
       onTap: loading ? null : onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: neuRaised(radius: 30),
+        decoration: neuBox(d: 4, b: 8, radius: 24),
         alignment: Alignment.center,
         child: loading
             ? const SizedBox(
@@ -124,11 +93,7 @@ class NeuButton extends StatelessWidget {
               )
             : Text(
                 label,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: color),
               ),
       ),
     );
@@ -151,8 +116,73 @@ class NeuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
-      decoration: neuRaised(radius: radius),
+      decoration: neuBox(d: 9, b: 18, radius: radius),
       child: child,
+    );
+  }
+}
+
+/// Круглий аватар з ініціалами (2 літери) + опційна online-крапка.
+class Avatar extends StatelessWidget {
+  final String username;
+  final double size;
+  final Color bg;
+  final bool showDot;
+  final bool online;
+  final String? gender;
+
+  const Avatar({
+    super.key,
+    required this.username,
+    this.size = 44,
+    this.bg = kAccentPink,
+    this.showDot = false,
+    this.online = false,
+    this.gender,
+  });
+
+  String get _initials {
+    final trimmed = username.trim();
+    if (trimmed.isEmpty) return '?';
+    if (trimmed.length == 1) return trimmed.toUpperCase();
+    return trimmed.substring(0, 2).toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dotColor = online ? onlineColorForGender(gender) : kOfflineDot;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+          child: Text(
+            _initials,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: size * 0.36,
+            ),
+          ),
+        ),
+        if (showDot)
+          Positioned(
+            right: -1,
+            bottom: -1,
+            child: Container(
+              width: size * 0.3,
+              height: size * 0.3,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: kBg, width: 2),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
