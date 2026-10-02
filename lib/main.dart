@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'api_client.dart';
 import 'session_store.dart';
-import 'widgets/neu.dart';
+import 'theme/tokens.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/home_shell.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,10 +16,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Чат',
+      title: 'Bouble Chat',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Roboto',
+        fontFamily: GoogleFonts.nunito().fontFamily,
         scaffoldBackgroundColor: kBg,
       ),
       home: const AuthGate(),
@@ -78,6 +79,6 @@ class _AuthGateState extends State<AuthGate> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    return _hasSession ? const HomeScreen() : const LoginScreen();
+    return _hasSession ? const HomeShell() : const LoginScreen();
   }
 }

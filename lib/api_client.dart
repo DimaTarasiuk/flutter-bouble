@@ -166,6 +166,111 @@ class ApiClient {
     throw ApiException(resp.statusCode, _extractError(resp));
   }
 
+  Future<AppUser> patchMe({
+    String? username,
+    String? firstName,
+    String? lastName,
+    String? birthDate,
+    String? gender,
+  }) async {
+    final body = <String, dynamic>{};
+    if (username != null) body['username'] = username;
+    if (firstName != null) body['first_name'] = firstName;
+    if (lastName != null) body['last_name'] = lastName;
+    if (birthDate != null) body['birth_date'] = birthDate;
+    if (gender != null) body['gender'] = gender;
+
+    final resp = await http
+        .patch(await _uri('/api/me'), headers: await _authHeaders(), body: jsonEncode(body))
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200) {
+      final auth = AuthResult.fromJson(jsonDecode(resp.body));
+      await SessionStore.updateToken(auth.token);
+      return auth.user;
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
+  }
+
+  Future<List<SearchUser>> searchUsers(String query) async {
+    final resp = await http
+        .get(await _uri('/api/users?q=${Uri.encodeQueryComponent(query)}'),
+            headers: await _authHeaders())
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200) {
+      final list = jsonDecode(resp.body) as List;
+      return list.map((e) => SearchUser.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
+  }
+
+  Future<Conversation> openConversation(String username) async {
+    final resp = await http
+        .post(await _uri('/api/conversations'),
+            headers: await _authHeaders(), body: jsonEncode({'username': username}))
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200 || resp.statusCode == 201) {
+      return Conversation.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
+  }
+
+  Future<List<ChatMessage>> messages(int conversationId, {int limit = 50, dynamic before}) async {
+    var path = '/api/conversations/$conversationId/messages?limit=$limit';
+    if (before != null) path += '&before=$before';
+    final resp = await http
+        .get(await _uri(path), headers: await _authHeaders())
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200) {
+      final list = jsonDecode(resp.body) as List;
+      return list
+          .map((e) => ChatMessage.fromJson(e as Map<String, dynamic>, conversationId))
+          .toList();
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
+  }
+
+  Future<ChatMessage> sendMessage(int conversationId, String text, {dynamic replyTo}) async {
+    final body = <String, dynamic>{'text': text};
+    if (replyTo != null) body['reply_to'] = replyTo;
+    final resp = await http
+        .post(await _uri('/api/conversations/$conversationId/messages'),
+            headers: await _authHeaders(), body: jsonEncode(body))
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200 || resp.statusCode == 201) {
+      return ChatMessage.fromJson(jsonDecode(resp.body) as Map<String, dynamic>, conversationId);
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
+  }
+
+  Future<void> editMessage(int conversationId, int messageId, String text) async {
+    final resp = await http
+        .patch(await _uri('/api/conversations/$conversationId/messages/$messageId'),
+            headers: await _authHeaders(), body: jsonEncode({'text': text}))
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200 && resp.statusCode != 204) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+  }
+
+  Future<void> markRead(int conversationId) async {
+    final resp = await http
+        .post(await _uri('/api/conversations/$conversationId/read'), headers: await _authHeaders())
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200 && resp.statusCode != 204) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+  }
+
+  Future<void> sendFeedback(String text) async {
+    final resp = await http
+        .post(await _uri('/api/feedback'),
+            headers: await _authHeaders(), body: jsonEncode({'text': text}))
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200 && resp.statusCode != 201) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+  }
+
   Future<List<Announcement>> pendingAnnouncements() async {
     final resp = await http
         .get(await _uri('/api/announcements/pending'),

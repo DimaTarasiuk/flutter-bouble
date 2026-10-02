@@ -78,6 +78,88 @@ class Conversation {
       );
 }
 
+class ChatMessage {
+  final dynamic id; // int для серверних, String "temp-..." для оптимістичних
+  final int conversationId;
+  final String from;
+  final String text;
+  final dynamic replyTo;
+  final DateTime createdAt;
+  final bool edited;
+  final bool isTemp;
+  final bool failed;
+
+  ChatMessage({
+    required this.id,
+    required this.conversationId,
+    required this.from,
+    required this.text,
+    required this.replyTo,
+    required this.createdAt,
+    this.edited = false,
+    this.isTemp = false,
+    this.failed = false,
+  });
+
+  bool get isNumericId => id is int;
+
+  ChatMessage copyWith({
+    dynamic id,
+    String? text,
+    bool? edited,
+    bool? isTemp,
+    bool? failed,
+  }) {
+    return ChatMessage(
+      id: id ?? this.id,
+      conversationId: conversationId,
+      from: from,
+      text: text ?? this.text,
+      replyTo: replyTo,
+      createdAt: createdAt,
+      edited: edited ?? this.edited,
+      isTemp: isTemp ?? this.isTemp,
+      failed: failed ?? this.failed,
+    );
+  }
+
+  /// Парсинг максимально толерантний до розбіжностей у назвах полів,
+  /// бо точна схема REST-відповіді для messages не задокументована в API_SPEC.md.
+  factory ChatMessage.fromJson(Map<String, dynamic> j, int conversationId) {
+    final rawId = j['id'];
+    DateTime created;
+    final rawTime = j['created_at'] ?? j['time'] ?? j['timestamp'];
+    try {
+      created = rawTime != null ? DateTime.parse(rawTime as String).toLocal() : DateTime.now();
+    } catch (_) {
+      created = DateTime.now();
+    }
+    return ChatMessage(
+      id: rawId,
+      conversationId: conversationId,
+      from: (j['from'] ?? j['sender'] ?? j['username'] ?? '') as String,
+      text: (j['text'] ?? j['body'] ?? '') as String,
+      replyTo: j['reply_to'] ?? j['reply_to_id'],
+      createdAt: created,
+      edited: (j['edited'] as bool?) ?? (j['edited_at'] != null),
+    );
+  }
+}
+
+class SearchUser {
+  final String username;
+  final String gender;
+  final bool online;
+
+  SearchUser({required this.username, required this.gender, required this.online});
+
+  factory SearchUser.fromJson(Map<String, dynamic> j) => SearchUser(
+        username: j['username'] as String? ?? '',
+        gender: j['gender'] as String? ?? '',
+        online: j['online'] as bool? ?? false,
+      );
+}
+
 class Announcement {
   final int id;
   final String text;
