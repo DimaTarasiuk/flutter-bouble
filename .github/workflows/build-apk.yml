@@ -24,6 +24,10 @@ jobs:
       - name: Generate Android platform files
         run: flutter create --project-name login_app --org com.example --platforms=android .
 
+      - name: Add Internet permission
+        run: |
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+
       - name: Check Android Manifest
         run: |
           echo "===== AndroidManifest.xml ====="
