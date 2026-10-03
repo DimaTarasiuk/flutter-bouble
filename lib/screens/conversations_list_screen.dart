@@ -11,6 +11,12 @@ import 'chat_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 import 'feedback_sheet.dart';
+import 'admin/users_panel.dart';
+import 'admin/stats_panel.dart';
+import 'admin/announcements_panel.dart';
+import 'admin/feedback_inbox_screen.dart';
+
+enum _HeadTab { chats, users, stats, news }
 
 class ConversationsListScreen extends StatefulWidget {
   final AppState appState;
@@ -33,6 +39,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
   bool _loading = true;
   String? _error;
   bool _profileHintSeen = true;
+  _HeadTab _headTab = _HeadTab.chats;
 
   @override
   void initState() {
@@ -138,6 +145,12 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     );
   }
 
+  void _openFeedbackInbox() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => FeedbackInboxScreen(appState: widget.appState)),
+    );
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -149,6 +162,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
   Widget build(BuildContext context) {
     final role = widget.me.role;
     final staff = isStaffRole(role);
+    final head = isHeadRole(role);
     final online = widget.appState.online;
 
     return Scaffold(
@@ -157,32 +171,103 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
         child: Column(
           children: [
             _buildHeader(staff),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: NeuTextField(
-                controller: _searchController,
-                hint: 'Пошук за логіном...',
-                trailing: _searching
-                    ? const SizedBox(
-                        width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.search, color: kTextMuted),
+            if (head) _buildHeadTabs(),
+            if (!head || _headTab == _HeadTab.chats)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: NeuTextField(
+                  controller: _searchController,
+                  hint: 'Пошук за логіном...',
+                  trailing: _searching
+                      ? const SizedBox(
+                          width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.search, color: kTextMuted),
+                ),
               ),
-            ),
-            Expanded(
-              child: _searchController.text.trim().isNotEmpty
-                  ? _buildSearchResults()
-                  : _buildConversationsList(online),
-            ),
-            if (!isHeadRole(role))
+            Expanded(child: _buildBody(head, online)),
+            if (!head)
               Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: TextButton(
                   onPressed: _openFeedback,
                   child: const Text('feedback', style: TextStyle(color: kTextMuted)),
                 ),
+              )
+            else if (_headTab == _HeadTab.chats)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: TextButton(
+                  onPressed: _openFeedbackInbox,
+                  child: Text(
+                    widget.appState.feedbackUnread > 0
+                        ? 'feedbacks (${widget.appState.feedbackUnread})'
+                        : 'feedbacks',
+                    style: TextStyle(
+                      color: widget.appState.feedbackUnread > 0 ? kAccentPink : kTextMuted,
+                      fontWeight: widget.appState.feedbackUnread > 0 ? FontWeight.w800 : FontWeight.normal,
+                    ),
+                  ),
+                ),
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBody(bool head, Set<String> online) {
+    if (!head || _headTab == _HeadTab.chats) {
+      return _searchController.text.trim().isNotEmpty
+          ? _buildSearchResults()
+          : _buildConversationsList(online);
+    }
+    switch (_headTab) {
+      case _HeadTab.users:
+        return UsersPanel(appState: widget.appState, me: widget.me);
+      case _HeadTab.stats:
+        return const StatsPanel();
+      case _HeadTab.news:
+        return const AnnouncementsPanel();
+      case _HeadTab.chats:
+        return const SizedBox.shrink(); // unreachable
+    }
+  }
+
+  Widget _buildHeadTabs() {
+    Widget tab(_HeadTab t, String label) {
+      final selected = _headTab == t;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _headTab = t),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: selected
+                ? neuBox(inset: true, d: 3, b: 6, radius: 14)
+                : neuBox(d: 3, b: 6, radius: 14),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: selected ? kAccentBlue : kTextMuted,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
+        children: [
+          tab(_HeadTab.chats, 'Чати'),
+          tab(_HeadTab.users, 'Юзери'),
+          tab(_HeadTab.stats, 'Статистика'),
+          tab(_HeadTab.news, 'Оголошення'),
+        ],
       ),
     );
   }
