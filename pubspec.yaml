@@ -15,6 +15,7 @@ dependencies:
   web_socket_channel: ^2.4.5
   google_fonts: ^6.2.1
   audioplayers: ^6.1.0
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:
