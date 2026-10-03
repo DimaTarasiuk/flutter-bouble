@@ -222,6 +222,39 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _showMessageActions(ChatMessage msg, bool isMine, bool canEdit) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: neuBox(d: 6, b: 14, radius: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.reply, color: kAccentBlue),
+              title: const Text('Відповісти', style: TextStyle(color: kTextMain, fontWeight: FontWeight.w700)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _startReply(msg);
+              },
+            ),
+            if (canEdit)
+              ListTile(
+                leading: const Icon(Icons.edit, color: kAccentBlue),
+                title: const Text('Редагувати', style: TextStyle(color: kTextMain, fontWeight: FontWeight.w700)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _startEdit(msg);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _startReply(ChatMessage msg) {
     setState(() {
       _replyTarget = msg;
@@ -364,13 +397,17 @@ class _ChatScreenState extends State<ChatScreen> {
           }
         }
 
+        // temp-повідомлення (ще не підтверджені сервером) не можна ні
+        // редагувати, ні відповідати на них — у них немає стабільного id.
+        final canInteract = !msg.isTemp;
+
         return MessageBubble(
           msg: msg,
           isMine: isMine,
           replyPreviewFrom: replyFrom,
           replyPreviewText: replyText,
-          onSwipeReply: isMine ? null : () => _startReply(msg),
-          onLongPressEdit: canEdit ? () => _startEdit(msg) : null,
+          onSwipeReply: (!isMine && canInteract) ? () => _startReply(msg) : null,
+          onLongPress: canInteract ? () => _showMessageActions(msg, isMine, canEdit) : null,
         );
       },
     );
