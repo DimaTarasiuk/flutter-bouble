@@ -1,3 +1,4 @@
+
 name: Build APK and Desktop
 
 on:
@@ -143,19 +144,26 @@ jobs:
 
   release:
     needs: [android, windows, macos]
+    if: always()
     runs-on: ubuntu-latest
+
     steps:
-      - name: Download all build artifacts
+      - name: Download successful build artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          pattern: app-release-*
+          path: release-files
+          merge-multiple: true
 
-      - name: Flatten into one folder
+      - name: Check available artifacts
         run: |
-          mkdir -p release-files
-          cp artifacts/app-release-apk/app-release.apk release-files/
-          cp artifacts/app-release-windows/login_app-windows.zip release-files/
-          cp artifacts/app-release-macos/login_app-macos.zip release-files/
+          echo "Available release files:"
+          ls -lah release-files
+
+          if [ -z "$(ls -A release-files)" ]; then
+            echo "No successful builds found. Skipping release."
+            exit 1
+          fi
 
       - name: Publish (or update) the "latest" release
         uses: softprops/action-gh-release@v2
