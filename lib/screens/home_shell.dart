@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../api_client.dart';
+import '../admin_api_client.dart';
 import '../models.dart';
+import '../role_helpers.dart';
 import '../session_store.dart';
 import '../theme/tokens.dart';
 import '../widgets/announcement_popup.dart';
@@ -36,6 +38,12 @@ class _HomeShellState extends State<HomeShell> {
         final pending = await _api.pendingAnnouncements();
         _appState.announcementQueue = pending;
       } catch (_) {}
+      if (isHeadRole(me.role)) {
+        try {
+          final count = await AdminApiClient().feedbackUnreadCount();
+          _appState.setFeedbackUnread(count);
+        } catch (_) {}
+      }
       await _appState.start();
       _appState.presence.events.listen((e) {
         if (e.type == 'force_logout') {
