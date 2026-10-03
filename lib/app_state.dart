@@ -10,6 +10,7 @@ class AppState extends ChangeNotifier {
   Set<String> online = {};
   int onlineCount = 0;
   List<Announcement> announcementQueue = [];
+  int feedbackUnread = 0; // лише для head
 
   /// id розмови, яка зараз відкрита на екрані — щоб не дзвонити звук
   /// і не рахувати unread для чату, який користувач і так дивиться.
@@ -31,6 +32,16 @@ class AppState extends ChangeNotifier {
   void setActiveConversation(int? id) {
     activeConversationId = id;
     if (id != null) unreadBump.remove(id);
+  }
+
+  void setFeedbackUnread(int count) {
+    feedbackUnread = count;
+    notifyListeners();
+  }
+
+  void clearFeedbackUnread() {
+    feedbackUnread = 0;
+    notifyListeners();
   }
 
   void dismissAnnouncement(Announcement a) {
@@ -90,6 +101,11 @@ class AppState extends ChangeNotifier {
           SoundService.playNewMessage();
           notifyListeners();
         }
+        break;
+
+      case 'feedback':
+        feedbackUnread += 1;
+        notifyListeners();
         break;
 
       case 'force_logout':
