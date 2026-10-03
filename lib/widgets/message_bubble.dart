@@ -7,8 +7,8 @@ class MessageBubble extends StatefulWidget {
   final bool isMine;
   final String? replyPreviewFrom;
   final String? replyPreviewText;
-  final VoidCallback? onSwipeReply; // лише для чужих
-  final VoidCallback? onLongPressEdit; // лише для своїх, у вікні 10 хв
+  final VoidCallback? onSwipeReply; // лише для чужих — свайп вправо
+  final VoidCallback? onLongPress; // меню дій (Відповісти / Редагувати)
 
   const MessageBubble({
     super.key,
@@ -17,7 +17,7 @@ class MessageBubble extends StatefulWidget {
     this.replyPreviewFrom,
     this.replyPreviewText,
     this.onSwipeReply,
-    this.onLongPressEdit,
+    this.onLongPress,
   });
 
   @override
@@ -25,9 +25,12 @@ class MessageBubble extends StatefulWidget {
 }
 
 class _MessageBubbleState extends State<MessageBubble> {
-  double _dragX = 0;
-  static const double _maxDrag = 72;
-  static const double _triggerDrag = 56;
+  double _scale = 1.0;
+
+  // Поріг має збігатися з dismissThresholds нижче.
+  static const double _threshold = 0.2;
+  static const double _shrinkTo = 0.90; // "стискається" до порогу
+  static const double _bubbleTo = 1.14; // "роздувається" як лінза/бульбашка після порогу
 
   String get _timeLabel {
     final t = widget.msg.createdAt;
@@ -36,18 +39,23 @@ class _MessageBubbleState extends State<MessageBubble> {
     return '$hh:$mm';
   }
 
-  void _onDragUpdate(DragUpdateDetails d) {
-    if (widget.onSwipeReply == null) return;
-    setState(() {
-      _dragX = (_dragX + d.delta.dx).clamp(0, _maxDrag);
-    });
+  void _handleDismissUpdate(DismissUpdateDetails details) {
+    final p = details.progress.clamp(0.0, 1.0);
+    double scale;
+    if (!details.reached) {
+      // Фаза 1: 0 → поріг — бабл плавно стискається (1.0 → _shrinkTo)
+      final t = (_threshold == 0) ? 0.0 : (p / _threshold).clamp(0.0, 1.0);
+      scale = 1.0 - (1.0 - _shrinkTo) * t;
+    } else {
+      // Фаза 2: поріг → кінець — бабл "роздувається" як лінза (_shrinkTo → _bubbleTo)
+      final t = ((p - _threshold) / (1 - _threshold)).clamp(0.0, 1.0);
+      scale = _shrinkTo + (_bubbleTo - _shrinkTo) * t;
+    }
+    if (mounted) setState(() => _scale = scale);
   }
 
-  void _onDragEnd(DragEndDetails d) {
-    if (_dragX >= _triggerDrag) {
-      widget.onSwipeReply?.call();
-    }
-    setState(() => _dragX = 0);
+  void _resetScale() {
+    if (mounted) setState(() => _scale = 1.0);
   }
 
   @override
@@ -137,30 +145,47 @@ class _MessageBubbleState extends State<MessageBubble> {
       ),
     );
 
-    if (widget.onLongPressEdit != null) {
-      bubble = GestureDetector(
-        onLongPress: widget.onLongPressEdit,
-        child: bubble,
-      );
-    }
-
     final row = Align(
       alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-        child: Transform.translate(
-          offset: Offset(widget.isMine ? 0 : _dragX, 0),
+        child: GestureDetector(
+          onLongPress: widget.onLongPress,
           child: bubble,
         ),
       ),
     );
 
-    if (widget.onSwipeReply == null) return row;
-
-    return GestureDetector(
-      onHorizontalDragUpdate: _onDragUpdate,
-      onHorizontalDragEnd: _onDragEnd,
+    // AnimatedScale гарантує плавне повернення до 1.0 навіть якщо
+    // onUpdate не встигає відпрацювати на кожному кадрі snap-back анімації.
+    final scaledRow = AnimatedScale(
+      scale: _scale,
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
       child: row,
     );
+
+    if (!widget.isMine && widget.onSwipeReply != null) {
+      return Dismissible(
+        key: ValueKey('msg-${widget.msg.id}-${widget.msg.createdAt.microsecondsSinceEpoch}'),
+        direction: DismissDirection.startToEnd,
+        dismissThresholds: const {DismissDirection.startToEnd: _threshold},
+        movementDuration: const Duration(milliseconds: 160),
+        onUpdate: _handleDismissUpdate,
+        background: Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 24),
+          child: const Icon(Icons.reply, color: kAccentPink, size: 22),
+        ),
+        confirmDismiss: (_) async {
+          widget.onSwipeReply!();
+          _resetScale();
+          return false; // ніколи не видаляємо сам елемент — лише тригер дії
+        },
+        child: scaledRow,
+      );
+    }
+
+    return row;
   }
 }
