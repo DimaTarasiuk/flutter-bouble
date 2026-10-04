@@ -178,6 +178,8 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 child: NeuTextField(
                   controller: _searchController,
                   hint: 'Пошук за логіном...',
+                  radius: 28,
+                  insetDepth: 5,
                   trailing: _searching
                       ? const SizedBox(
                           width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
@@ -229,7 +231,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
       case _HeadTab.news:
         return const AnnouncementsPanel();
       case _HeadTab.chats:
-        return const SizedBox.shrink(); // unreachable
+        return const SizedBox.shrink();
     }
   }
 
