@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart' hide BoxDecoration, BoxShadow;
-import 'package:flutter_inset_shadow/flutter_inset_shadow.dart';
+import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 
 export '../theme/tokens.dart';
@@ -16,6 +15,7 @@ class NeuTextField extends StatelessWidget {
   final void Function(String)? onSubmitted;
   final double radius;
   final double insetDepth;
+  final double verticalPadding;
 
   const NeuTextField({
     super.key,
@@ -30,6 +30,7 @@ class NeuTextField extends StatelessWidget {
     this.onSubmitted,
     this.radius = 20,
     this.insetDepth = 4,
+    this.verticalPadding = 16,
   });
 
   @override
@@ -41,9 +42,9 @@ class NeuTextField extends StatelessWidget {
         b: insetDepth * 2,
         radius: radius,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.end : CrossAxisAlignment.center,
         children: [
           Expanded(
             child: TextField(
@@ -61,11 +62,14 @@ class NeuTextField extends StatelessWidget {
                 border: InputBorder.none,
                 isDense: true,
                 counterText: '',
-                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                contentPadding: EdgeInsets.symmetric(vertical: verticalPadding),
               ),
             ),
           ),
-          if (trailing != null) trailing!,
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing!,
+          ],
         ],
       ),
     );
@@ -136,6 +140,7 @@ class Avatar extends StatelessWidget {
   final String username;
   final double size;
   final Color bg;
+  final Color initialsColor;
   final bool showDot;
   final bool online;
   final String? gender;
@@ -145,6 +150,7 @@ class Avatar extends StatelessWidget {
     required this.username,
     this.size = 44,
     this.bg = kAccentPink,
+    this.initialsColor = Colors.white,
     this.showDot = false,
     this.online = false,
     this.gender,
@@ -171,7 +177,7 @@ class Avatar extends StatelessWidget {
           child: Text(
             _initials,
             style: TextStyle(
-              color: Colors.white,
+              color: initialsColor,
               fontWeight: FontWeight.w800,
               fontSize: size * 0.36,
             ),
