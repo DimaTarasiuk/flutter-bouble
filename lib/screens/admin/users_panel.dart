@@ -102,11 +102,18 @@ class _UsersPanelState extends State<UsersPanel> {
                                   decoration: neuBox(d: 4, b: 10, radius: 18),
                                   child: Row(
                                     children: [
-                                      Avatar(
-                                        username: u.username,
-                                        bg: kAccentPink,
-                                        showDot: true,
-                                        online: u.online,
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: neuBox(d: 4, b: 8, radius: 22),
+                                        alignment: Alignment.center,
+                                        child: Avatar(
+                                          username: u.username,
+                                          size: 36,
+                                          bg: kAccentPink,
+                                          showDot: true,
+                                          online: u.online,
+                                        ),
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(
