@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide BoxDecoration, BoxShadow;
+import 'package:flutter_inset_shadow/flutter_inset_shadow.dart';
 
 // ---------- Design tokens (1:1 з React-фронтом) ----------
 
@@ -50,32 +51,26 @@ BoxDecoration neuBox({
   Color color = kBg,
 }) {
   if (inset) {
-    // Внутрішнє затемнення через градієнт (справжнє втоплення)
     return BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(radius),
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color.lerp(color, kShadowDark, 0.18)!,
-          color,
-          Color.lerp(color, kShadowLight, 0.35)!,
-        ],
-        stops: const [0.0, 0.45, 1.0],
-      ),
       boxShadow: [
         BoxShadow(
-          color: kShadowDark.withOpacity(0.25),
-          offset: Offset(d * 0.6, d * 0.6),
-          blurRadius: b * 0.8,
-          spreadRadius: -1,
+          color: kShadowDark,
+          offset: Offset(d, d),
+          blurRadius: b,
+          inset: true,
+        ),
+        BoxShadow(
+          color: kShadowLight,
+          offset: Offset(-d, -d),
+          blurRadius: b,
+          inset: true,
         ),
       ],
     );
   }
 
-  // Випуклий (raised)
   return BoxDecoration(
     color: color,
     borderRadius: BorderRadius.circular(radius),
@@ -94,7 +89,6 @@ BoxDecoration neuBox({
   );
 }
 
-// Збережено для сумісності зі старими екранами
 BoxDecoration neuRaised({double radius = 24}) => neuBox(d: 6, b: 14, radius: radius);
 BoxDecoration neuInset({double radius = 30}) => neuBox(inset: true, d: 4, b: 8, radius: radius);
 
