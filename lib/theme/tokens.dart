@@ -50,20 +50,26 @@ BoxDecoration neuBox({
   Color color = kBg,
 }) {
   if (inset) {
-    // Правильне втоплення: темна тінь зверху-зліва, світла знизу-справа
+    // Внутрішнє затемнення через градієнт (справжнє втоплення)
     return BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(radius),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color.lerp(color, kShadowDark, 0.18)!,
+          color,
+          Color.lerp(color, kShadowLight, 0.35)!,
+        ],
+        stops: const [0.0, 0.45, 1.0],
+      ),
       boxShadow: [
         BoxShadow(
-          color: kShadowDark,
-          offset: Offset(-d, -d),
-          blurRadius: b,
-        ),
-        BoxShadow(
-          color: kShadowLight,
-          offset: Offset(d, d),
-          blurRadius: b,
+          color: kShadowDark.withOpacity(0.25),
+          offset: Offset(d * 0.6, d * 0.6),
+          blurRadius: b * 0.8,
+          spreadRadius: -1,
         ),
       ],
     );
