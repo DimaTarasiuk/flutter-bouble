@@ -32,7 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _inputController = TextEditingController();
   final _inputFocus = FocusNode();
 
-  final List<ChatMessage> _messages = []; // старі → нові
+  final List<ChatMessage> _messages = [];
   final Map<dynamic, ChatMessage> _byId = {};
 
   bool _loadingInitial = true;
@@ -76,8 +76,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (type == null || type == 'message' || type == 'chat_message') {
       final payload = (data['message'] ?? data) as Map<String, dynamic>;
       final msg = ChatMessage.fromJson(payload, widget.conversation.id);
-      if (msg.id != null && _byId.containsKey(msg.id)) return; // дедуп
-      if (msg.from == widget.me.username) return; // своє вже додане оптимістично
+      if (msg.id != null && _byId.containsKey(msg.id)) return;
+      if (msg.from == widget.me.username) return;
       setState(() {
         _messages.add(msg);
         if (msg.id != null) _byId[msg.id] = msg;
@@ -182,7 +182,7 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       try {
         await _api.editMessage(widget.conversation.id, target.id as int, text);
-      } catch (_) {} // тихо, як на вебі
+      } catch (_) {}
       return;
     }
 
@@ -208,9 +208,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final real = await _api.sendMessage(widget.conversation.id, text, replyTo: replyTo);
-      // Якщо сервер у відповіді на send не повернув reply_to — підставляємо
-      // те, що самі відправили (ми це точно знаємо), щоб прев'ю не губилось
-      // у момент заміни temp-повідомлення на реальне.
       final merged = real.replyTo == null && replyTo != null
           ? real.copyWith(replyTo: replyTo)
           : real;
@@ -342,7 +339,8 @@ class _ChatScreenState extends State<ChatScreen> {
           Avatar(
             username: widget.conversation.peer,
             size: 38,
-            bg: kAccentPink,
+            bg: const Color(0xFFF5F7FA),
+            initialsColor: kAccentPink,
             showDot: true,
             online: peerOnline,
             gender: widget.conversation.peerGender,
@@ -403,8 +401,6 @@ class _ChatScreenState extends State<ChatScreen> {
           }
         }
 
-        // temp-повідомлення (ще не підтверджені сервером) не можна ні
-        // редагувати, ні відповідати на них — у них немає стабільного id.
         final canInteract = !msg.isTemp;
 
         return MessageBubble(
@@ -467,10 +463,6 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          IconButton(
-            icon: Icon(Icons.emoji_emotions_outlined, color: _showEmoji ? kAccentBlue : kTextMuted),
-            onPressed: () => setState(() => _showEmoji = !_showEmoji),
-          ),
           Expanded(
             child: NeuTextField(
               controller: _inputController,
@@ -479,6 +471,20 @@ class _ChatScreenState extends State<ChatScreen> {
               maxLength: 1000,
               focusNode: _inputFocus,
               onSubmitted: (_) => _send(),
+              radius: 22,
+              insetDepth: 3,
+              verticalPadding: 10,
+              trailing: GestureDetector(
+                onTap: () => setState(() => _showEmoji = !_showEmoji),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Icon(
+                    Icons.emoji_emotions_outlined,
+                    color: _showEmoji ? kAccentBlue : kTextMuted,
+                    size: 22,
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 8),
