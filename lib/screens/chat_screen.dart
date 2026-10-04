@@ -208,11 +208,17 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final real = await _api.sendMessage(widget.conversation.id, text, replyTo: replyTo);
+      // Якщо сервер у відповіді на send не повернув reply_to — підставляємо
+      // те, що самі відправили (ми це точно знаємо), щоб прев'ю не губилось
+      // у момент заміни temp-повідомлення на реальне.
+      final merged = real.replyTo == null && replyTo != null
+          ? real.copyWith(replyTo: replyTo)
+          : real;
       setState(() {
         final idx = _messages.indexWhere((m) => m.id == tempId);
         if (idx != -1) {
-          _messages[idx] = real;
-          _byId[real.id] = real;
+          _messages[idx] = merged;
+          _byId[merged.id] = merged;
         }
       });
     } catch (_) {
