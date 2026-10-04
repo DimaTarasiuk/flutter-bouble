@@ -109,19 +109,22 @@ class ChatMessage {
     bool? edited,
     bool? isTemp,
     bool? failed,
+    Object? replyTo = _unset,
   }) {
     return ChatMessage(
       id: id ?? this.id,
       conversationId: conversationId,
       from: from,
       text: text ?? this.text,
-      replyTo: replyTo,
+      replyTo: identical(replyTo, _unset) ? this.replyTo : replyTo,
       createdAt: createdAt,
       edited: edited ?? this.edited,
       isTemp: isTemp ?? this.isTemp,
       failed: failed ?? this.failed,
     );
   }
+
+  static const Object _unset = Object();
 
   /// Парсинг максимально толерантний до розбіжностей у назвах полів,
   /// бо точна схема REST-відповіді для messages не задокументована в API_SPEC.md.
