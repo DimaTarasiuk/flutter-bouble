@@ -4,7 +4,6 @@ import '../app_state.dart';
 import '../api_client.dart';
 import '../models.dart';
 import '../theme/tokens.dart';
-import '../widgets/neu.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/emoji_panel.dart';
 import '../ws/chat_ws_service.dart';
@@ -314,7 +313,7 @@ class _ChatScreenState extends State<ChatScreen> {
             if (_editTarget != null) _buildEditBanner(),
             if (_showEmoji)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: EmojiPanel(onPick: _insertEmoji),
               ),
             _buildInputBar(),
@@ -326,32 +325,39 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildHeader(bool peerOnline) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: kTextMain),
-            onPressed: () => Navigator.of(context).pop(),
+          NeuPress(
+            pressedScale: 0.93,
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: neuBox(d: 4, b: 10, radius: 24),
+              child: const Icon(Icons.arrow_back, color: kAccentBlue, size: 22),
+            ),
           ),
-          Avatar(
-            username: widget.conversation.peer,
-            size: 38,
-            bg: kAccentPink,
-            showDot: true,
-            online: peerOnline,
-            gender: widget.conversation.peerGender,
-          ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.conversation.peer,
-                    style: const TextStyle(fontWeight: FontWeight.w800, color: kTextMain)),
+                Text(
+                  widget.conversation.peer,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: kTextMain,
+                  ),
+                ),
+                const SizedBox(height: 2),
                 Text(
                   peerOnline ? 'Online' : 'Offline',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     color: peerOnline
                         ? onlineColorForGender(widget.conversation.peerGender)
                         : kTextMuted,
@@ -414,21 +420,53 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildReplyBanner() {
+    final target = _replyTarget!;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: neuBox(inset: true, d: 3, b: 6, radius: 14),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+      padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+      decoration: neuInset(radius: 20),
       child: Row(
         children: [
+          Container(
+            width: 3,
+            height: 38,
+            decoration: BoxDecoration(
+              color: kAccentPink,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Відповідь · ${_replyTarget!.from}',
-              style: const TextStyle(fontSize: 12.5, color: kAccentPink, fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Відповідь · ${target.from}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: kAccentPink,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  target.text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, color: kTextMuted),
+                ),
+              ],
             ),
           ),
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: _cancelComposerState,
-            child: const Icon(Icons.close, size: 16, color: kTextMuted),
+            child: const Padding(
+              padding: EdgeInsets.all(6),
+              child: Icon(Icons.close, size: 20, color: kTextMuted),
+            ),
           ),
         ],
       ),
@@ -437,18 +475,33 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildEditBanner() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: neuBox(inset: true, d: 3, b: 6, radius: 14),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+      padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+      decoration: neuInset(radius: 20),
       child: Row(
         children: [
+          Container(
+            width: 3,
+            height: 24,
+            decoration: BoxDecoration(
+              color: kAccentBlue,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
           const Expanded(
-            child: Text('Редагування',
-                style: TextStyle(fontSize: 12.5, color: kAccentBlue, fontWeight: FontWeight.w700)),
+            child: Text(
+              'Редагування',
+              style: TextStyle(fontSize: 13, color: kAccentBlue, fontWeight: FontWeight.w800),
+            ),
           ),
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: _cancelComposerState,
-            child: const Text('Скасувати', style: TextStyle(fontSize: 12.5, color: kTextMuted)),
+            child: const Padding(
+              padding: EdgeInsets.all(6),
+              child: Text('Скасувати', style: TextStyle(fontSize: 13, color: kTextMuted)),
+            ),
           ),
         ],
       ),
@@ -456,34 +509,61 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputBar() {
+    final hint = _replyTarget != null ? 'Написати відповідь...' : 'Повідомлення...';
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          IconButton(
-            icon: Icon(Icons.emoji_emotions_outlined, color: _showEmoji ? kAccentBlue : kTextMuted),
-            onPressed: () => setState(() => _showEmoji = !_showEmoji),
-          ),
           Expanded(
-            child: NeuTextField(
-              controller: _inputController,
-              hint: 'Повідомлення...',
-              maxLines: 4,
-              maxLength: 1000,
-              focusNode: _inputFocus,
-              onSubmitted: (_) => _send(),
+            child: Container(
+              padding: const EdgeInsets.only(left: 22, right: 8),
+              decoration: neuInset(radius: 28),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _inputController,
+                      focusNode: _inputFocus,
+                      minLines: 1,
+                      maxLines: 4,
+                      maxLength: 1000,
+                      onSubmitted: (_) => _send(),
+                      style: const TextStyle(fontSize: 16, color: kTextMain),
+                      decoration: InputDecoration(
+                        hintText: hint,
+                        hintStyle: const TextStyle(fontSize: 16, color: kTextMuted),
+                        border: InputBorder.none,
+                        filled: false,
+                        counterText: '',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _showEmoji = !_showEmoji),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text('😊', style: TextStyle(fontSize: 24)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           NeuPress(
             pressedScale: 0.93,
             onTap: _sending ? null : _send,
             child: Container(
-              width: 44,
-              height: 44,
-              decoration: neuBox(d: 4, b: 8, radius: 22, color: kSendGrey),
-              child: const Icon(Icons.send, color: Colors.white, size: 18),
+              width: 54,
+              height: 54,
+              decoration: neuBox(d: 4, b: 8, radius: 27, color: kSendGrey),
+              child: const Icon(Icons.send_outlined, color: Colors.white, size: 22),
             ),
           ),
         ],
