@@ -462,7 +462,8 @@ class _UserRow extends StatelessWidget {
               child: Avatar(
                 username: username,
                 size: 36,
-                bg: kAccentPink,
+                bg: const Color(0xFFF5F7FA),
+                initialsColor: kAccentPink,
                 showDot: true,
                 online: online,
                 gender: gender,
