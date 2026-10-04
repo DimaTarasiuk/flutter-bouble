@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide BoxDecoration, BoxShadow;
+import 'package:flutter_inset_shadow/flutter_inset_shadow.dart';
 import '../theme/tokens.dart';
 
 export '../theme/tokens.dart';
@@ -131,7 +132,6 @@ class NeuCard extends StatelessWidget {
   }
 }
 
-/// Круглий аватар з ініціалами (2 літери) + опційна online-крапка.
 class Avatar extends StatelessWidget {
   final String username;
   final double size;
