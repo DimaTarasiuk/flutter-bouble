@@ -16,6 +16,7 @@ dependencies:
   google_fonts: ^6.2.1
   audioplayers: ^6.1.0
   fl_chart: ^0.69.0
+  flutter_inset_shadow: ^2.0.3
 
 dev_dependencies:
   flutter_test:
