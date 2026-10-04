@@ -66,8 +66,8 @@ class _UsersPanelState extends State<UsersPanel> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: NeuTextField(
             controller: _filterController,
-            hint: 'Фільтр юзерів...',
-            trailing: const Icon(Icons.filter_list, color: kTextMuted),
+            hint: 'Пошук за логіном...',
+            trailing: const Icon(Icons.search, color: kTextMuted),
           ),
         ),
         Expanded(
@@ -80,12 +80,11 @@ class _UsersPanelState extends State<UsersPanel> {
                       : RefreshIndicator(
                           onRefresh: _load,
                           child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                             itemCount: filtered.length,
                             itemBuilder: (context, i) {
                               final u = filtered[i];
-                              return InkWell(
-                                borderRadius: BorderRadius.circular(16),
+                              return NeuPress(
                                 onTap: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -97,11 +96,18 @@ class _UsersPanelState extends State<UsersPanel> {
                                     ),
                                   );
                                 },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  decoration: neuBox(d: 4, b: 10, radius: 18),
                                   child: Row(
                                     children: [
-                                      Avatar(username: u.username, bg: kAccentPink),
+                                      Avatar(
+                                        username: u.username,
+                                        bg: kAccentPink,
+                                        showDot: true,
+                                        online: u.online,
+                                      ),
                                       const SizedBox(width: 14),
                                       Expanded(
                                         child: Column(
@@ -116,14 +122,20 @@ class _UsersPanelState extends State<UsersPanel> {
                                                 ],
                                                 if (u.banned) ...[
                                                   const SizedBox(width: 6),
-                                                  const Text('· бан',
-                                                      style: TextStyle(fontSize: 11.5, color: kDangerRed)),
+                                                  const Text(
+                                                    '· бан',
+                                                    style: TextStyle(fontSize: 11.5, color: kDangerRed),
+                                                  ),
                                                 ],
                                               ],
                                             ),
+                                            const SizedBox(height: 2),
                                             Text(
                                               u.online ? 'Online' : (u.lastSeen ?? 'Offline'),
-                                              style: AppText.mutedSmall,
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                color: u.online ? kOnlineDefault : kTextMuted,
+                                              ),
                                             ),
                                           ],
                                         ),
