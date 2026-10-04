@@ -13,6 +13,8 @@ class NeuTextField extends StatelessWidget {
   final int maxLines;
   final FocusNode? focusNode;
   final void Function(String)? onSubmitted;
+  final double radius;
+  final double insetDepth;
 
   const NeuTextField({
     super.key,
@@ -25,12 +27,19 @@ class NeuTextField extends StatelessWidget {
     this.maxLines = 1,
     this.focusNode,
     this.onSubmitted,
+    this.radius = 20,
+    this.insetDepth = 4,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: neuBox(inset: true, d: 4, b: 8, radius: 20),
+      decoration: neuBox(
+        inset: true,
+        d: insetDepth,
+        b: insetDepth * 2,
+        radius: radius,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
