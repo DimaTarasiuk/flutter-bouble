@@ -25,7 +25,7 @@ const Color kTheirBubble = Color(0xFFF5E8EE);
 
 const Color kDangerRed = Color(0xFFD9534F);
 
-// Аліаси для старих екранів (login/register), щоб не редагувати їх під нові назви
+// Аліаси для старих екранів (login/register)
 const Color kTextDark = kTextMain;
 const Color kTextGray = kTextMuted;
 
@@ -41,7 +41,6 @@ Color onlineColorForGender(String? gender) {
 }
 
 // ---------- Neumorphism decorations ----------
-// neu(inset, d, b): d = offset, b = blur, спогад з CSS-специфікації
 
 BoxDecoration neuBox({
   bool inset = false,
@@ -51,41 +50,50 @@ BoxDecoration neuBox({
   Color color = kBg,
 }) {
   if (inset) {
+    // Правильне втоплення: темна тінь зверху-зліва, світла знизу-справа
     return BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(radius),
       boxShadow: [
         BoxShadow(
           color: kShadowDark,
-          offset: Offset(d, d),
+          offset: Offset(-d, -d),
           blurRadius: b,
-          spreadRadius: -d / 2,
         ),
         BoxShadow(
           color: kShadowLight,
-          offset: Offset(-d, -d),
+          offset: Offset(d, d),
           blurRadius: b,
-          spreadRadius: -d / 2,
         ),
       ],
     );
   }
+
+  // Випуклий (raised)
   return BoxDecoration(
     color: color,
     borderRadius: BorderRadius.circular(radius),
     boxShadow: [
-      BoxShadow(color: kShadowDark.withOpacity(0.9), offset: Offset(d, d), blurRadius: b),
-      BoxShadow(color: kShadowLight, offset: Offset(-d, -d), blurRadius: b),
+      BoxShadow(
+        color: kShadowDark.withOpacity(0.9),
+        offset: Offset(d, d),
+        blurRadius: b,
+      ),
+      BoxShadow(
+        color: kShadowLight,
+        offset: Offset(-d, -d),
+        blurRadius: b,
+      ),
     ],
   );
 }
 
-// Збережено для сумісності зі старими екранами (login/register)
+// Збережено для сумісності зі старими екранами
 BoxDecoration neuRaised({double radius = 24}) => neuBox(d: 6, b: 14, radius: radius);
 BoxDecoration neuInset({double radius = 30}) => neuBox(inset: true, d: 4, b: 8, radius: radius);
 
 // ---------- Press effect ----------
-// .neu-press: scale(0.97) + inset; .neu-press-send: scale(0.93); .neu-press-soft: scale(0.96)+opacity 0.65
+
 class NeuPress extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
