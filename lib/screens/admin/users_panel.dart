@@ -118,12 +118,12 @@ class _UsersPanelState extends State<UsersPanel> {
                                                 Text(u.username, style: AppText.bodyBold),
                                                 if (u.role != 'user') ...[
                                                   const SizedBox(width: 6),
-                                                  Text('· ${u.role}', style: AppText.mutedSmall),
+                                                  Text('- ${u.role}', style: AppText.mutedSmall),
                                                 ],
                                                 if (u.banned) ...[
                                                   const SizedBox(width: 6),
                                                   const Text(
-                                                    '· бан',
+                                                    '- бан',
                                                     style: TextStyle(fontSize: 11.5, color: kDangerRed),
                                                   ),
                                                 ],
