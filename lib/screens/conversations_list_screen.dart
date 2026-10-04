@@ -452,12 +452,19 @@ class _UserRow extends StatelessWidget {
         decoration: neuBox(d: 4, b: 10, radius: 18),
         child: Row(
           children: [
-            Avatar(
-              username: username,
-              bg: kAccentPink,
-              showDot: true,
-              online: online,
-              gender: gender,
+            Container(
+              width: 44,
+              height: 44,
+              decoration: neuBox(d: 4, b: 8, radius: 22),
+              alignment: Alignment.center,
+              child: Avatar(
+                username: username,
+                size: 36,
+                bg: kAccentPink,
+                showDot: true,
+                online: online,
+                gender: gender,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
