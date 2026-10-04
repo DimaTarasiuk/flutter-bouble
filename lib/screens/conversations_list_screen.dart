@@ -101,31 +101,17 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
       setState(() => _searchResults = []);
       if (!mounted) return;
       await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            appState: widget.appState,
-            me: widget.me,
-            conversation: conv,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => ChatScreen(appState: widget.appState, me: widget.me, conversation: conv)),
       );
       _load();
     } on ApiException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.userMessage)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.userMessage)));
     }
   }
 
   Future<void> _openConversation(Conversation c) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          appState: widget.appState,
-          me: widget.me,
-          conversation: c,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => ChatScreen(appState: widget.appState, me: widget.me, conversation: c)),
     );
     _load();
   }
@@ -161,9 +147,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
 
   void _openFeedbackInbox() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FeedbackInboxScreen(appState: widget.appState),
-      ),
+      MaterialPageRoute(builder: (_) => FeedbackInboxScreen(appState: widget.appState)),
     );
   }
 
@@ -196,10 +180,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                   hint: 'Пошук за логіном...',
                   trailing: _searching
                       ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                          width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.search, color: kTextMuted),
                 ),
               ),
@@ -209,10 +190,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 padding: const EdgeInsets.only(bottom: 14),
                 child: TextButton(
                   onPressed: _openFeedback,
-                  child: const Text(
-                    'feedback',
-                    style: TextStyle(color: kTextMuted),
-                  ),
+                  child: const Text('feedback', style: TextStyle(color: kTextMuted)),
                 ),
               )
             else if (_headTab == _HeadTab.chats)
@@ -225,11 +203,307 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                         ? 'feedbacks (${widget.appState.feedbackUnread})'
                         : 'feedbacks',
                     style: TextStyle(
-                      color: widget.appState.feedbackUnread > 0
-                          ? kAccentPink
-                          : kTextMuted,
-                      fontWeight: widget.appState.feedbackUnread > 0
-                          ? FontWeight.w800
-                          : FontWeight.normal,
+                      color: widget.appState.feedbackUnread > 0 ? kAccentPink : kTextMuted,
+                      fontWeight: widget.appState.feedbackUnread > 0 ? FontWeight.w800 : FontWeight.normal,
                     ),
                   ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(bool head, Set<String> online) {
+    if (!head || _headTab == _HeadTab.chats) {
+      return _searchController.text.trim().isNotEmpty
+          ? _buildSearchResults()
+          : _buildConversationsList(online);
+    }
+    switch (_headTab) {
+      case _HeadTab.users:
+        return UsersPanel(appState: widget.appState, me: widget.me);
+      case _HeadTab.stats:
+        return const StatsPanel();
+      case _HeadTab.news:
+        return const AnnouncementsPanel();
+      case _HeadTab.chats:
+        return const SizedBox.shrink(); // unreachable
+    }
+  }
+
+  Widget _buildHeadTabs() {
+    Widget tab(_HeadTab t, String label) {
+      final selected = _headTab == t;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _headTab = t),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: selected
+                ? neuBox(inset: true, d: 3, b: 6, radius: 14)
+                : neuBox(d: 3, b: 6, radius: 14),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: selected ? kAccentBlue : kTextMuted,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
+        children: [
+          tab(_HeadTab.chats, 'Чати'),
+          tab(_HeadTab.users, 'Юзери'),
+          tab(_HeadTab.stats, 'Статистика'),
+          tab(_HeadTab.news, 'Оголошення'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool staff) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: _openProfile,
+            child: _ProfilePulse(
+              enabled: !_profileHintSeen,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: neuBox(d: 4, b: 8, radius: 22),
+                child: Avatar(username: widget.me.username, size: 36, bg: kAccentBlue),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: const TextSpan(
+                    children: [
+                      TextSpan(
+                          text: 'Bouble ',
+                          style: TextStyle(color: kTextMuted, fontWeight: FontWeight.w800, fontSize: 19)),
+                      TextSpan(
+                          text: 'Chat',
+                          style: TextStyle(color: kTextMain, fontWeight: FontWeight.w800, fontSize: 19)),
+                    ],
+                  ),
+                ),
+                Text(
+                  staff ? 'Онлайн зараз: ${widget.appState.onlineCount}' : 'Приватні чати',
+                  style: const TextStyle(fontSize: 12.5, color: kTextMuted),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                staff ? '${widget.me.username} · ${widget.me.role}' : widget.me.username,
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: kTextMain),
+              ),
+              TextButton(
+                onPressed: _logout,
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(10, 20)),
+                child: const Text('Вийти', style: TextStyle(fontSize: 12, color: kTextMuted)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (_searchResults.isEmpty && !_searching) {
+      return const Center(
+        child: Text('Нікого не знайдено', style: TextStyle(color: kTextMuted)),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      itemCount: _searchResults.length,
+      itemBuilder: (context, i) {
+        final u = _searchResults[i];
+        return _UserRow(
+          username: u.username,
+          gender: u.gender,
+          online: u.online,
+          onTap: () => _openWithUser(u.username),
+        );
+      },
+    );
+  }
+
+  Widget _buildConversationsList(Set<String> online) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(child: Text(_error!, style: const TextStyle(color: kDangerRed)));
+    }
+    if (_conversations.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            'Немає діалогів. Знайдіть користувача за логіном',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: kTextMuted),
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        itemCount: _conversations.length,
+        itemBuilder: (context, i) {
+          final c = _conversations[i];
+          final bump = widget.appState.unreadBump[c.id] ?? 0;
+          final unread = c.unreadCount + bump;
+          return _UserRow(
+            username: c.peer,
+            gender: c.peerGender,
+            online: online.contains(c.peer),
+            unreadCount: unread,
+            onTap: () => _openConversation(c),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ProfilePulse extends StatefulWidget {
+  final bool enabled;
+  final Widget child;
+  const _ProfilePulse({required this.enabled, required this.child});
+
+  @override
+  State<_ProfilePulse> createState() => _ProfilePulseState();
+}
+
+class _ProfilePulseState extends State<_ProfilePulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) {
+        final scale = 1.0 + (_c.value * 0.08);
+        return Transform.scale(scale: scale, child: child);
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class _UserRow extends StatelessWidget {
+  final String username;
+  final String gender;
+  final bool online;
+  final int unreadCount;
+  final VoidCallback onTap;
+
+  const _UserRow({
+    required this.username,
+    required this.gender,
+    required this.online,
+    this.unreadCount = 0,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return NeuPress(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: neuBox(d: 4, b: 10, radius: 18),
+        child: Row(
+          children: [
+            Avatar(
+              username: username,
+              bg: kAccentPink,
+              showDot: true,
+              online: online,
+              gender: gender,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    username,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: kTextMain,
+                      fontSize: 15.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    online ? 'Online' : 'Offline',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: online
+                          ? onlineColorForGender(gender)
+                          : kTextMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (unreadCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: kAccentPink,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  unreadCount > 99 ? '99+' : '$unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
