@@ -46,13 +46,14 @@ class _HomeShellState extends State<HomeShell> {
           _appState.setFeedbackUnread(count);
         } catch (_) {}
       }
-      await _appState.start();
+      // force_logout до start(), щоб не пропустити подію одразу після connect.
       _appState.presence.events.listen((e) {
         if (e.type == 'force_logout') {
           final reason = e.raw['reason'] as String?;
           _handleForceLogout(reason);
         }
       });
+      await _appState.start();
       if (mounted) setState(() => _me = me);
     } catch (_) {
       if (mounted) _goToLogin();

@@ -36,8 +36,10 @@ class AppState extends ChangeNotifier {
   Future<void> start() async {
     if (_started) return;
     _started = true;
-    await presence.connect();
+    // Підписка ДО connect: інакше presence_snapshot з сервера губиться
+    // (broadcast stream без слухачів дропає події) — юзери лишаються «Offline».
     presence.events.listen(_onEvent);
+    await presence.connect();
   }
 
   void setActiveConversation(int? id) {

@@ -44,17 +44,9 @@ class PresenceService {
       protocols: ['bearer', token],
     );
     _channel = channel;
-
-    try {
-      await channel.ready;
-    } catch (_) {
-      if (_wantConnected && !_disposed) _scheduleReconnect();
-      return;
-    }
-    if (_disposed || !_wantConnected || !identical(_channel, channel)) return;
-
     _controller ??= StreamController<PresenceEvent>.broadcast();
 
+    // Слухаємо одразу — snapshot часто приходить ще до ready.
     _sub = channel.stream.listen(
       (message) {
         try {
@@ -73,6 +65,13 @@ class PresenceService {
       },
       cancelOnError: false,
     );
+
+    try {
+      await channel.ready;
+    } catch (_) {
+      if (_wantConnected && !_disposed) _scheduleReconnect();
+      return;
+    }
   }
 
   void _scheduleReconnect() {

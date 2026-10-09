@@ -90,7 +90,8 @@ class _UsersPanelState extends State<UsersPanel> {
                             itemCount: filtered.length,
                             itemBuilder: (context, i) {
                               final u = filtered[i];
-                              final isOnline = widget.appState.online.contains(u.username);
+                              final isOnline =
+                                  widget.appState.online.contains(u.username) || u.online;
                               return NeuPress(
                                 onTap: () {
                                   Navigator.of(context).push(
