@@ -244,6 +244,17 @@
     color: var(--text-gray);
   }
 
+  .install-tip {
+    margin-top: 14px;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--text-gray);
+    max-width: 42ch;
+  }
+  @media (max-width: 860px) {
+    .install-tip { margin-inline: auto; }
+  }
+
   .other-platforms {
     margin-top: 18px;
     font-size: 0.86rem;
@@ -396,6 +407,7 @@
       </div>
 
       <div class="other-platforms" id="otherPlatforms"></div>
+      <p class="install-tip" id="installTip"></p>
 
       <ul class="features">
         <li><span class="dot"></span>Легкий та швидкий запуск</li>
@@ -442,9 +454,13 @@
     macos: {
       url: "https://github.com/DimaTarasiuk/flutter-bouble/releases/download/latest/bouble-chat-macos.zip",
       label: "Завантажити для macOS",
-      meta: "macOS 12+ · v1.0"
+      meta: "macOS 12+ · оновлення поверх",
+      tip: "Розпакуй zip і перетягни bouble_chat.app у Програми → Replace. Видаляти стару не потрібно. Якщо «пошкоджено»: xattr -cr /Applications/bouble_chat.app"
     }
   };
+
+  LINKS.android.tip = "Нові APK можна ставити поверх (після першої встановлення з новим підписом).";
+  LINKS.windows.tip = "Розпакуй zip і заміни файли попередньої версії.";
 
   function detectPlatform() {
     var ua = navigator.userAgent || "";
@@ -464,6 +480,7 @@
   mainLink.setAttribute('href', LINKS[current].url);
   mainLabel.textContent = LINKS[current].label;
   mainMeta.textContent = LINKS[current].meta;
+  document.getElementById('installTip').textContent = LINKS[current].tip || "";
 
   var names = { android: "Android", windows: "Windows", macos: "macOS" };
   var otherKeys = Object.keys(LINKS).filter(function (k) { return k !== current; });

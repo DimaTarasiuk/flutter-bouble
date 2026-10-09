@@ -1,1 +1,14 @@
 .cursor/*
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.idea/
+*.iml
+.metadata
+
+# Android signing — never commit private keys (public repo)
+signing/*.jks
+signing/*.keystore
+signing/key.properties
