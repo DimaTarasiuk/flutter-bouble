@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Вхід — застосунок</title>
+<style>
+  :root {
+    --bg-1: #dfe4ec;
+    --bg-2: #e8ecf3;
+    --bg-3: #d3dbe8;
+    --bg-4: #eef1f6;
+    --surface: #e3e7ed;
+    --shadow-dark: rgba(163, 173, 191, 0.65);
+    --shadow-light: rgba(255, 255, 255, 0.9);
+    --text-dark: #3d4552;
+    --text-gray: #8b94a3;
+    --accent: #3b7ddd;
+    --accent-soft: rgba(59, 125, 221, 0.12);
+  }
+
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg-1: #23262d;
+      --bg-2: #2a2e37;
+      --bg-3: #1c1f25;
+      --bg-4: #2f333d;
+      --surface: #262a32;
+      --shadow-dark: rgba(0, 0, 0, 0.55);
+      --shadow-light: rgba(255, 255, 255, 0.045);
+      --text-dark: #eef1f6;
+      --text-gray: #9aa3b2;
+      --accent: #6fa2ec;
+      --accent-soft: rgba(111, 162, 236, 0.16);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg-1: #23262d;
+    --bg-2: #2a2e37;
+    --bg-3: #1c1f25;
+    --bg-4: #2f333d;
+    --surface: #262a32;
+    --shadow-dark: rgba(0, 0, 0, 0.55);
+    --shadow-light: rgba(255, 255, 255, 0.045);
+    --text-dark: #eef1f6;
+    --text-gray: #9aa3b2;
+    --accent: #6fa2ec;
+    --accent-soft: rgba(111, 162, 236, 0.16);
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    scroll-padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: var(--bg-1);
+    min-height: 100%;
+    overflow-x: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .bg-anim {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      120deg,
+      var(--bg-1) 0%,
+      var(--bg-2) 25%,
+      var(--bg-3) 50%,
+      var(--bg-4) 75%,
+      var(--bg-1) 100%
+    );
+    background-size: 300% 300%;
+    animation: gradientShift 18s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-anim { animation: none; }
+    .blob { animation: none !important; }
+  }
+
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.5;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .blob-a {
+    width: 42vw; height: 42vw;
+    max-width: 520px; max-height: 520px;
+    background: radial-gradient(circle, var(--accent-soft), transparent 70%);
+    top: -10%; left: -8%;
+    animation: floatA 22s ease-in-out infinite;
+  }
+  .blob-b {
+    width: 36vw; height: 36vw;
+    max-width: 460px; max-height: 460px;
+    background: radial-gradient(circle, rgba(255,255,255,0.5), transparent 70%);
+    bottom: -12%; right: -6%;
+    animation: floatB 26s ease-in-out infinite;
+  }
+  @media (prefers-color-scheme: dark) {
+    .blob-b { background: radial-gradient(circle, rgba(111,162,236,0.10), transparent 70%); }
+  }
+
+  @keyframes floatA {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(4%, 6%) scale(1.08); }
+  }
+  @keyframes floatB {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-5%, -4%) scale(1.06); }
+  }
+
+  .page {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 48px 24px 24px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 1040px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 56px;
+    align-items: center;
+  }
+
+  .text-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (max-width: 860px) {
+    .page {
+      align-items: flex-start;
+      padding: 28px 20px 72px;
+    }
+    .wrap {
+      grid-template-columns: 1fr;
+      gap: 28px;
+      text-align: center;
+    }
+    /* Кнопка одразу під заголовком — без картинки на весь перший екран */
+    .text-col .eyebrow-icon { order: 0; margin: 0 auto 16px; }
+    .text-col h1 { order: 1; margin-bottom: 16px; font-size: clamp(1.75rem, 7vw, 2.2rem); }
+    .text-col .cta-row { order: 2; justify-content: center; margin-top: 4px; }
+    .text-col .other-platforms { order: 3; margin-top: 14px; justify-content: center; }
+    .text-col .lede { order: 4; margin: 22px auto 0; font-size: 0.98rem; }
+    .text-col .features { order: 5; margin-top: 22px; align-items: center; }
+    .phone {
+      width: min(168px, 42vw);
+      border-radius: 28px;
+      padding: 10px;
+    }
+    .phone-screen { border-radius: 20px; padding: 12px 10px; gap: 8px; }
+  }
+
+  .eyebrow-icon {
+    width: 64px; height: 64px;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface);
+    box-shadow: 6px 6px 14px var(--shadow-dark), -6px -6px 14px var(--shadow-light);
+    margin-bottom: 28px;
+  }
+
+  .eyebrow-icon svg { width: 30px; height: 30px; }
+
+  h1 {
+    font-size: clamp(2.1rem, 4vw, 3rem);
+    font-weight: 800;
+    line-height: 1.12;
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    font-size: 1.08rem;
+    line-height: 1.6;
+    color: var(--text-gray);
+    max-width: 46ch;
+    margin: 0 0 34px;
+  }
+  .cta-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 17px 30px;
+    border-radius: 30px;
+    background: var(--surface);
+    color: var(--accent);
+    font-size: 1.02rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 7px 7px 16px var(--shadow-dark), -7px -7px 16px var(--shadow-light);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-download:hover {
+    box-shadow: 4px 4px 10px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
+  }
+  .btn-download:active {
+    box-shadow: inset 4px 4px 10px var(--shadow-dark), inset -4px -4px 10px var(--shadow-light);
+    transform: scale(0.99);
+  }
+  .btn-download svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  .meta-note {
+    font-size: 0.88rem;
+    color: var(--text-gray);
+  }
+
+  .other-platforms {
+    margin-top: 18px;
+    font-size: 0.86rem;
+    color: var(--text-gray);
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .other-platforms a {
+    color: var(--text-gray);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--shadow-dark);
+  }
+  .other-platforms a:hover { color: var(--accent); }
+  .other-platforms .sep { opacity: 0.5; }
+
+  .features {
+    list-style: none;
+    padding: 0;
+    margin: 40px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .features li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-gray);
+    font-size: 0.96rem;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .phone-col { display: flex; justify-content: center; }
+
+  .phone {
+    width: 250px;
+    aspect-ratio: 9 / 19.5;
+    border-radius: 40px;
+    background: var(--surface);
+    box-shadow: 14px 14px 32px var(--shadow-dark), -14px -14px 32px var(--shadow-light);
+    padding: 14px;
+    animation: floatPhone 6s ease-in-out infinite;
+  }
+  @keyframes floatPhone {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .phone-screen {
+    width: 100%; height: 100%;
+    border-radius: 28px;
+    background: var(--bg-1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 16px;
+    gap: 12px;
+  }
+
+  .mini-card {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .mini-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: 3px 3px 7px var(--shadow-dark), -3px -3px 7px var(--shadow-light);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mini-avatar svg { width: 18px; height: 18px; }
+  .mini-title { font-weight: 800; font-size: 0.85rem; }
+  .mini-field {
+    width: 100%;
+    height: 22px;
+    border-radius: 12px;
+    background: var(--bg-1);
+    box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light);
+  }
+  .mini-btn {
+    width: 100%;
+    height: 24px;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 3px 3px 6px var(--shadow-dark), -3px -3px 6px var(--shadow-light);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  footer {
+    width: 100%;
+    align-self: stretch;
+    text-align: center;
+    padding: 8px 16px 20px;
+    font-size: 0.8rem;
+    color: var(--text-gray);
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-anim"></div>
+<div class="blob blob-a"></div>
+<div class="blob blob-b"></div>
+
+<div class="page">
+  <div class="wrap">
+
+    <div class="text-col">
+      <div class="eyebrow-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="8" r="4" fill="#3B7DDD"/>
+          <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="#3B7DDD" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <h1>Простий вхід у застосунок,<br>без зайвого шуму</h1>
+
+      <p class="lede">
+        Мінімалістичний застосунок для Android з приємним м'яким інтерфейсом.
+        Завантаж APK-файл нижче і встанови його на свій телефон за хвилину.
+      </p>
+
+      <div class="cta-row">
+        <a class="btn-download" id="mainLink" href="#" download>
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span id="mainLinkLabel">Завантажити</span>
+        </a>
+        <span class="meta-note" id="mainLinkMeta">v1.0</span>
+      </div>
+
+      <div class="other-platforms" id="otherPlatforms"></div>
+
+      <ul class="features">
+        <li><span class="dot"></span>Легкий та швидкий запуск</li>
+        <li><span class="dot"></span>Не потребує Google Play</li>
+        <li><span class="dot"></span>Оновлення без зайвих дозволів</li>
+      </ul>
+    </div>
+
+    <div class="phone-col">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="mini-card">
+            <div class="mini-avatar">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="8" r="4" fill="#3B7DDD"/>
+                <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="#3B7DDD" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="mini-title">Вхід</div>
+            <div class="mini-field"></div>
+            <div class="mini-field"></div>
+            <div class="mini-btn">Увійти →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <footer>© 2026 · Designed by Dimadmin</footer>
+</div>
+
+<script>
+  var LINKS = {
+    android: {
+      url: "https://github.com/DimaTarasiuk/flutter-bouble/releases/download/latest/bouble-chat.apk",
+      label: "Завантажити APK",
+      meta: "Android 8.0+ · v1.0"
+    },
+    windows: {
+      url: "https://github.com/DimaTarasiuk/flutter-bouble/releases/download/latest/bouble-chat-windows.zip",
+      label: "Завантажити для Windows",
+      meta: "Windows 10/11 · v1.0"
+    },
+    macos: {
+      url: "https://github.com/DimaTarasiuk/flutter-bouble/releases/download/latest/bouble-chat-macos.zip",
+      label: "Завантажити для macOS",
+      meta: "macOS 12+ · v1.0"
+    }
+  };
+
+  function detectPlatform() {
+    var ua = navigator.userAgent || "";
+    var platform = navigator.platform || "";
+    if (/android/i.test(ua)) return "android";
+    if (/Mac/i.test(platform) && !/iPhone|iPad/i.test(ua)) return "macos";
+    if (/Win/i.test(platform)) return "windows";
+    return "android";
+  }
+
+  var current = detectPlatform();
+  var mainLink = document.getElementById('mainLink');
+  var mainLabel = document.getElementById('mainLinkLabel');
+  var mainMeta = document.getElementById('mainLinkMeta');
+  var otherWrap = document.getElementById('otherPlatforms');
+
+  mainLink.setAttribute('href', LINKS[current].url);
+  mainLabel.textContent = LINKS[current].label;
+  mainMeta.textContent = LINKS[current].meta;
+
+  var names = { android: "Android", windows: "Windows", macos: "macOS" };
+  var otherKeys = Object.keys(LINKS).filter(function (k) { return k !== current; });
+  var html = "Інші платформи: ";
+  otherKeys.forEach(function (k, i) {
+    html += '<a href="' + LINKS[k].url + '" download>' + names[k] + '</a>';
+    if (i < otherKeys.length - 1) html += '<span class="sep"> · </span>';
+  });
+  otherWrap.innerHTML = html;
+</script>
+
+</body>
+</html>

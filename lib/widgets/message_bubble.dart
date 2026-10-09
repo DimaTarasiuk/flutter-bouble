@@ -104,13 +104,11 @@ class _MessageBubbleState extends State<MessageBubble>
       width: _avatarSize,
       height: _avatarSize,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: neuBox(
+        d: 5,
+        b: 10,
+        radius: _avatarSize / 2,
         color: _neuBg,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(color: _neuDark, blurRadius: 8, offset: Offset(3, 3)),
-          BoxShadow(color: _neuLight, blurRadius: 8, offset: Offset(-3, -3)),
-        ],
       ),
       child: Text(
         _initials,
@@ -128,47 +126,53 @@ class _MessageBubbleState extends State<MessageBubble>
     final text = widget.replyPreviewText ?? '';
     if (text.isEmpty && from.isEmpty) return const SizedBox.shrink();
 
+    final insetBg = widget.isMine
+        ? const Color(0xFFE6EAF0)
+        : const Color(0xFFEDE6EB);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 3, color: kAccentPink),
-              Flexible(
-                child: Container(
-                  color: const Color(0x99FFFFFF),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (from.isNotEmpty)
-                        Text(
-                          from,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                            color: kAccentPink,
-                          ),
-                        ),
-                      if (from.isNotEmpty && text.isNotEmpty) const SizedBox(height: 2),
-                      if (text.isNotEmpty)
-                        Text(
-                          text,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, color: kTextMuted),
-                        ),
-                    ],
-                  ),
-                ),
+      padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
+      decoration: neuBox(inset: true, d: 2.5, b: 5, radius: 12, color: insetBg),
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 3,
+              decoration: BoxDecoration(
+                color: kAccentPink,
+                borderRadius: BorderRadius.circular(2),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (from.isNotEmpty)
+                  Text(
+                    from,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: kAccentPink,
+                    ),
+                  ),
+                if (from.isNotEmpty && text.isNotEmpty) const SizedBox(height: 2),
+                if (text.isNotEmpty)
+                  Text(
+                    text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: kTextMuted),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -227,16 +231,18 @@ class _MessageBubbleState extends State<MessageBubble>
           BoxShadow(color: _neuLight, blurRadius: 14, offset: Offset(-5, -5)),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (hasReplyPreview) _buildReplyPreview(),
-          Text(
-            widget.msg.text,
-            style: const TextStyle(fontSize: 16, color: kTextMain),
-          ),
-        ],
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (hasReplyPreview) _buildReplyPreview(),
+            Text(
+              widget.msg.text,
+              style: const TextStyle(fontSize: 16, color: kTextMain),
+            ),
+          ],
+        ),
       ),
     );
 
