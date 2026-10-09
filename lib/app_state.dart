@@ -80,6 +80,16 @@ class AppState extends ChangeNotifier {
     return result;
   }
 
+  static bool _asBool(dynamic v) {
+    if (v is bool) return v;
+    if (v is num) return v != 0;
+    if (v is String) {
+      final s = v.toLowerCase();
+      return s == 'true' || s == '1' || s == 'yes';
+    }
+    return false;
+  }
+
   void _onEvent(PresenceEvent e) {
     switch (e.type) {
       case 'presence_snapshot':
@@ -90,9 +100,9 @@ class AppState extends ChangeNotifier {
         break;
 
       case 'presence':
-        final user = e.raw['user'] as String?;
-        final isOnline = e.raw['online'] as bool? ?? false;
-        if (user != null) {
+        final user = (e.raw['user'] ?? e.raw['username'])?.toString();
+        final isOnline = _asBool(e.raw['online']);
+        if (user != null && user.isNotEmpty) {
           // Новий Set — щоб UI точно побачив зміну після notifyListeners.
           if (isOnline) {
             online = {...online, user};

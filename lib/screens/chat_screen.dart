@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../api_client.dart';
 import '../models.dart';
+import '../presence_service.dart';
 import '../theme/tokens.dart';
 import '../widgets/neu.dart';
 import '../widgets/message_bubble.dart';
@@ -45,20 +46,29 @@ class _ChatScreenState extends State<ChatScreen> {
   ChatMessage? _editTarget;
 
   StreamSubscription? _wsSub;
+  StreamSubscription? _presenceSub;
+  bool _merging = false;
 
   @override
   void initState() {
     super.initState();
     widget.appState.setActiveConversation(widget.conversation.id);
-    _loadInitial();
-    _connectWs();
     _scrollController.addListener(_onScroll);
+    _presenceSub = widget.appState.presence.events.listen(_onPresenceEvent);
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    // WS раніше за REST — щоб не втратити повідомлення під час завантаження історії.
+    await _connectWs();
+    await _loadInitial();
   }
 
   @override
   void dispose() {
     widget.appState.setActiveConversation(null);
     _wsSub?.cancel();
+    _presenceSub?.cancel();
     _ws.dispose();
     _scrollController.dispose();
     _inputController.dispose();
@@ -68,53 +78,151 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _connectWs() async {
     await _ws.connect(widget.conversation.id);
+    await _wsSub?.cancel();
     _wsSub = _ws.messages.listen(_onWsEvent);
   }
 
+  void _onPresenceEvent(PresenceEvent e) {
+    if (e.type != 'chat_message') return;
+    final convId = _asInt(e.raw['conversation_id']);
+    if (convId != widget.conversation.id) return;
+    final from = e.raw['from']?.toString();
+    if (from == widget.me.username) return;
+    final id = ChatMessage.normalizeId(e.raw['id']);
+    if (id != null && _byId.containsKey(id)) return;
+    // Presence шле лише id/from — підтягуємо повне повідомлення через REST.
+    _mergeLatestFromApi();
+  }
+
+  static int? _asInt(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
+
   void _onWsEvent(Map<String, dynamic> data) {
-    final type = data['type'] as String?;
-    if (type == null || type == 'message' || type == 'chat_message') {
-      final payload = (data['message'] ?? data) as Map<String, dynamic>;
-      final msg = ChatMessage.fromJson(payload, widget.conversation.id);
-      final msgId = ChatMessage.normalizeId(msg.id);
-      if (msgId != null && _byId.containsKey(msgId)) return;
-      if (msg.from == widget.me.username) return;
+    try {
+      final type = data['type'] as String?;
+      // Presence-style notify без тексту — ігноруємо (обробляє _onPresenceEvent).
+      if (type == 'chat_message' && data['text'] == null && data['message'] == null) {
+        return;
+      }
+      if (type == null || type == 'message' || type == 'chat_message') {
+        final raw = data['message'] ?? data;
+        if (raw is! Map) return;
+        final payload = Map<String, dynamic>.from(raw);
+        if ((payload['text'] as String?) == null && payload['body'] == null) return;
+        final msg = ChatMessage.fromJson(payload, widget.conversation.id);
+        _upsertMessage(msg, scroll: true, markRead: true);
+      } else if (type == 'message_edited' || type == 'edited') {
+        final raw = data['message'] ?? data;
+        if (raw is! Map) return;
+        final payload = Map<String, dynamic>.from(raw);
+        final msg = ChatMessage.fromJson(payload, widget.conversation.id);
+        _upsertMessage(msg, scroll: false, markRead: false);
+      }
+    } catch (_) {}
+  }
+
+  void _upsertMessage(ChatMessage msg, {required bool scroll, required bool markRead}) {
+    final msgId = ChatMessage.normalizeId(msg.id);
+    final existingIdx = msgId == null
+        ? -1
+        : _messages.indexWhere((m) => ChatMessage.idsEqual(m.id, msgId));
+
+    if (existingIdx != -1) {
       setState(() {
-        _messages.add(msg);
+        _messages[existingIdx] = msg;
         if (msgId != null) _byId[msgId] = msg;
       });
-      _scrollToBottom();
-      _markRead();
-    } else if (type == 'message_edited' || type == 'edited') {
-      final payload = (data['message'] ?? data) as Map<String, dynamic>;
-      final id = payload['id'];
-      final idx = _messages.indexWhere((m) => m.id == id);
-      if (idx != -1) {
+      return;
+    }
+
+    // Своє вже додане оптимістично — не дублюємо з WS.
+    if (msg.from == widget.me.username) {
+      final tempIdx = _messages.indexWhere(
+        (m) => m.isTemp && m.from == msg.from && m.text == msg.text,
+      );
+      if (tempIdx != -1) {
         setState(() {
-          _messages[idx] = _messages[idx].copyWith(text: payload['text'] as String?, edited: true);
+          _messages[tempIdx] = msg;
+          if (msgId != null) _byId[msgId] = msg;
         });
       }
+      return;
+    }
+
+    setState(() {
+      _messages.add(msg);
+      if (msgId != null) _byId[msgId] = msg;
+    });
+    if (scroll) _scrollToBottom();
+    if (markRead) _markRead();
+  }
+
+  Future<void> _mergeLatestFromApi() async {
+    if (_merging || !mounted) return;
+    _merging = true;
+    try {
+      final list = await _api.messages(widget.conversation.id, limit: 50);
+      if (!mounted) return;
+      var added = false;
+      setState(() {
+        for (final m in list) {
+          final id = ChatMessage.normalizeId(m.id);
+          if (id != null && _byId.containsKey(id)) {
+            final idx = _messages.indexWhere((x) => ChatMessage.idsEqual(x.id, id));
+            if (idx != -1) _messages[idx] = m;
+            _byId[id] = m;
+            continue;
+          }
+          _messages.add(m);
+          if (id != null) _byId[id] = m;
+          added = true;
+        }
+        _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      });
+      if (added) {
+        _scrollToBottom();
+        _markRead();
+      }
+    } catch (_) {
+    } finally {
+      _merging = false;
     }
   }
 
   Future<void> _loadInitial() async {
-    setState(() => _loadingInitial = true);
+    if (mounted) setState(() => _loadingInitial = true);
     try {
       final list = await _api.messages(widget.conversation.id, limit: 50);
+      if (!mounted) return;
       setState(() {
-        _messages.clear();
-        _byId.clear();
-        _messages.addAll(list);
+        // Мерджимо з тим, що вже могло прийти по WS, замість clear.
+        final byId = <dynamic, ChatMessage>{};
         for (final m in list) {
           final id = ChatMessage.normalizeId(m.id);
-          if (id != null) _byId[id] = m;
+          if (id != null) byId[id] = m;
         }
+        for (final m in _messages) {
+          final id = ChatMessage.normalizeId(m.id);
+          if (id == null) continue;
+          byId.putIfAbsent(id, () => m);
+        }
+        final merged = byId.values.toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        _messages
+          ..clear()
+          ..addAll(merged);
+        _byId
+          ..clear()
+          ..addAll(byId);
         _hasMore = list.length >= 50;
+        _loadingInitial = false;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
       _markRead();
     } catch (_) {
-    } finally {
       if (mounted) setState(() => _loadingInitial = false);
     }
   }
@@ -126,7 +234,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels <= 80 && !_loadingMore && _hasMore) {
+    if (!_scrollController.hasClients || _loadingMore || !_hasMore) return;
+    // reverse: true — «верх» історії (старіші) біля maxScrollExtent.
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 80) {
       _loadMore();
     }
   }
@@ -135,7 +246,6 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_messages.isEmpty) return;
     setState(() => _loadingMore = true);
     final oldest = _messages.first;
-    final prevExtent = _scrollController.position.maxScrollExtent;
     try {
       final older = await _api.messages(widget.conversation.id, limit: 50, before: oldest.id);
       if (older.isEmpty) {
@@ -148,10 +258,7 @@ class _ChatScreenState extends State<ChatScreen> {
             if (id != null) _byId[id] = m;
           }
         });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final newExtent = _scrollController.position.maxScrollExtent;
-          _scrollController.jumpTo(_scrollController.position.pixels + (newExtent - prevExtent));
-        });
+        // reverse:true — препенд старих не зсуває низ (offset 0).
       }
     } catch (_) {
     } finally {
@@ -162,11 +269,11 @@ class _ChatScreenState extends State<ChatScreen> {
   void _scrollToBottom({bool animated = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
-      final target = _scrollController.position.maxScrollExtent;
+      // reverse: true — низ чату це offset 0.
       if (animated) {
-        _scrollController.animateTo(target, duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
       } else {
-        _scrollController.jumpTo(target);
+        _scrollController.jumpTo(0);
       }
     });
   }
@@ -393,12 +500,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageList() {
+    // reverse: true — нові знизу й автоматично «прилипають» без jumpTo(max).
     return ListView.builder(
       controller: _scrollController,
+      reverse: true,
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       itemCount: _messages.length + 1,
       itemBuilder: (context, index) {
-        if (index == 0) {
+        if (index == _messages.length) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Center(
@@ -410,7 +519,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           );
         }
-        final msg = _messages[index - 1];
+        final msg = _messages[_messages.length - 1 - index];
         final isMine = msg.from == widget.me.username;
         final canEdit = isMine && msg.isNumericId && DateTime.now().difference(msg.createdAt).inMinutes < 10;
 
