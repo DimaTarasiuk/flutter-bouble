@@ -76,11 +76,12 @@ class _ChatScreenState extends State<ChatScreen> {
     if (type == null || type == 'message' || type == 'chat_message') {
       final payload = (data['message'] ?? data) as Map<String, dynamic>;
       final msg = ChatMessage.fromJson(payload, widget.conversation.id);
-      if (msg.id != null && _byId.containsKey(msg.id)) return;
+      final msgId = ChatMessage.normalizeId(msg.id);
+      if (msgId != null && _byId.containsKey(msgId)) return;
       if (msg.from == widget.me.username) return;
       setState(() {
         _messages.add(msg);
-        if (msg.id != null) _byId[msg.id] = msg;
+        if (msgId != null) _byId[msgId] = msg;
       });
       _scrollToBottom();
       _markRead();
@@ -105,7 +106,8 @@ class _ChatScreenState extends State<ChatScreen> {
         _byId.clear();
         _messages.addAll(list);
         for (final m in list) {
-          if (m.id != null) _byId[m.id] = m;
+          final id = ChatMessage.normalizeId(m.id);
+          if (id != null) _byId[id] = m;
         }
         _hasMore = list.length >= 50;
       });
@@ -142,7 +144,8 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _messages.insertAll(0, older);
           for (final m in older) {
-            if (m.id != null) _byId[m.id] = m;
+            final id = ChatMessage.normalizeId(m.id);
+            if (id != null) _byId[id] = m;
           }
         });
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -187,13 +190,16 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final tempId = 'temp-${DateTime.now().millisecondsSinceEpoch}';
-    final replyTo = _replyTarget?.id;
+    final replyTarget = _replyTarget;
+    final replyTo = replyTarget?.id;
     final temp = ChatMessage(
       id: tempId,
       conversationId: widget.conversation.id,
       from: widget.me.username,
       text: text,
       replyTo: replyTo,
+      replyPreviewFrom: replyTarget?.from,
+      replyPreviewText: replyTarget?.text,
       createdAt: DateTime.now(),
       isTemp: true,
     );
@@ -208,14 +214,23 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final real = await _api.sendMessage(widget.conversation.id, text, replyTo: replyTo);
-      final merged = real.replyTo == null && replyTo != null
+      var merged = real.replyTo == null && replyTo != null
           ? real.copyWith(replyTo: replyTo)
           : real;
+      if ((merged.replyPreviewText == null || merged.replyPreviewText!.isEmpty) &&
+          replyTarget != null) {
+        merged = merged.copyWith(
+          replyTo: replyTo,
+          replyPreviewFrom: replyTarget.from,
+          replyPreviewText: replyTarget.text,
+        );
+      }
       setState(() {
         final idx = _messages.indexWhere((m) => m.id == tempId);
         if (idx != -1) {
           _messages[idx] = merged;
-          _byId[merged.id] = merged;
+          final mid = ChatMessage.normalizeId(merged.id);
+          if (mid != null) _byId[mid] = merged;
         }
       });
     } catch (_) {
@@ -397,23 +412,15 @@ class _ChatScreenState extends State<ChatScreen> {
         final isMine = msg.from == widget.me.username;
         final canEdit = isMine && msg.isNumericId && DateTime.now().difference(msg.createdAt).inMinutes < 10;
 
-        String? replyFrom;
-        String? replyText;
-        if (msg.replyTo != null) {
-          final original = _byId[msg.replyTo];
-          if (original != null) {
-            replyFrom = original.from;
-            replyText = original.text;
-          }
-        }
+        final replyPreview = _resolveReplyPreview(msg);
 
         final canInteract = !msg.isTemp;
 
         return MessageBubble(
           msg: msg,
           isMine: isMine,
-          replyPreviewFrom: replyFrom,
-          replyPreviewText: replyText,
+          replyPreviewFrom: replyPreview.$1,
+          replyPreviewText: replyPreview.$2,
           onSwipeReply: (!isMine && canInteract) ? () => _startReply(msg) : null,
           onLongPress: canInteract ? () => _showMessageActions(msg, isMine, canEdit) : null,
         );
@@ -421,17 +428,54 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// Повертає (from, text) для превʼю реплаю.
+  (String?, String?) _resolveReplyPreview(ChatMessage msg) {
+    if (msg.replyPreviewText != null || msg.replyPreviewFrom != null) {
+      return (msg.replyPreviewFrom, msg.replyPreviewText);
+    }
+    if (msg.replyTo == null) return (null, null);
+
+    final direct = _byId[msg.replyTo] ?? _byId[ChatMessage.normalizeId(msg.replyTo)];
+    if (direct != null) return (direct.from, direct.text);
+
+    for (final m in _messages) {
+      if (ChatMessage.idsEqual(m.id, msg.replyTo)) {
+        return (m.from, m.text);
+      }
+    }
+    return (null, null);
+  }
+
   Widget _buildReplyBanner() {
+    final target = _replyTarget!;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: neuBox(inset: true, d: 3, b: 6, radius: 14),
       child: Row(
         children: [
+          Container(width: 3, height: 32, color: kAccentPink),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              'Відповідь · ${_replyTarget!.from}',
-              style: const TextStyle(fontSize: 12.5, color: kAccentPink, fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Відповідь · ${target.from}',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: kAccentPink,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  target.text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12.5, color: kTextMuted),
+                ),
+              ],
             ),
           ),
           GestureDetector(

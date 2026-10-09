@@ -84,6 +84,9 @@ class ChatMessage {
   final String from;
   final String text;
   final dynamic replyTo;
+  /// Якщо сервер віддав вкладений reply_to — зберігаємо превʼю одразу.
+  final String? replyPreviewFrom;
+  final String? replyPreviewText;
   final DateTime createdAt;
   final bool edited;
   final bool isTemp;
@@ -95,13 +98,15 @@ class ChatMessage {
     required this.from,
     required this.text,
     required this.replyTo,
+    this.replyPreviewFrom,
+    this.replyPreviewText,
     required this.createdAt,
     this.edited = false,
     this.isTemp = false,
     this.failed = false,
   });
 
-  bool get isNumericId => id is int;
+  bool get isNumericId => id is int || (id is num && id == (id as num).toInt());
 
   ChatMessage copyWith({
     dynamic id,
@@ -110,6 +115,8 @@ class ChatMessage {
     bool? isTemp,
     bool? failed,
     Object? replyTo = _unset,
+    Object? replyPreviewFrom = _unset,
+    Object? replyPreviewText = _unset,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -117,6 +124,12 @@ class ChatMessage {
       from: from,
       text: text ?? this.text,
       replyTo: identical(replyTo, _unset) ? this.replyTo : replyTo,
+      replyPreviewFrom: identical(replyPreviewFrom, _unset)
+          ? this.replyPreviewFrom
+          : replyPreviewFrom as String?,
+      replyPreviewText: identical(replyPreviewText, _unset)
+          ? this.replyPreviewText
+          : replyPreviewText as String?,
       createdAt: createdAt,
       edited: edited ?? this.edited,
       isTemp: isTemp ?? this.isTemp,
@@ -126,10 +139,29 @@ class ChatMessage {
 
   static const Object _unset = Object();
 
+  static dynamic normalizeId(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) {
+      final asInt = int.tryParse(raw);
+      return asInt ?? raw;
+    }
+    return raw;
+  }
+
+  static bool idsEqual(dynamic a, dynamic b) {
+    if (a == null || b == null) return false;
+    if (a == b) return true;
+    final na = normalizeId(a);
+    final nb = normalizeId(b);
+    return na == nb || '$na' == '$nb';
+  }
+
   /// Парсинг максимально толерантний до розбіжностей у назвах полів,
   /// бо точна схема REST-відповіді для messages не задокументована в API_SPEC.md.
   factory ChatMessage.fromJson(Map<String, dynamic> j, int conversationId) {
-    final rawId = j['id'];
+    final rawId = normalizeId(j['id']);
     DateTime created;
     final rawTime = j['created_at'] ?? j['time'] ?? j['timestamp'];
     try {
@@ -137,12 +169,30 @@ class ChatMessage {
     } catch (_) {
       created = DateTime.now();
     }
+
+    dynamic replyRaw = j['reply_to'] ?? j['reply_to_id'] ?? j['replyTo'];
+    String? replyPreviewFrom;
+    String? replyPreviewText;
+    dynamic replyTo;
+    if (replyRaw is Map) {
+      final map = Map<String, dynamic>.from(replyRaw);
+      replyTo = normalizeId(map['id'] ?? map['message_id']);
+      final from = map['from'] ?? map['sender'] ?? map['username'];
+      final text = map['text'] ?? map['body'];
+      if (from is String && from.isNotEmpty) replyPreviewFrom = from;
+      if (text is String && text.isNotEmpty) replyPreviewText = text;
+    } else {
+      replyTo = normalizeId(replyRaw);
+    }
+
     return ChatMessage(
       id: rawId,
       conversationId: conversationId,
       from: (j['from'] ?? j['sender'] ?? j['username'] ?? '') as String,
       text: (j['text'] ?? j['body'] ?? '') as String,
-      replyTo: j['reply_to'] ?? j['reply_to_id'],
+      replyTo: replyTo,
+      replyPreviewFrom: replyPreviewFrom,
+      replyPreviewText: replyPreviewText,
       createdAt: created,
       edited: (j['edited'] as bool?) ?? (j['edited_at'] != null),
     );
