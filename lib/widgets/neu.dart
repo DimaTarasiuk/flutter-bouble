@@ -10,6 +10,7 @@ class NeuTextField extends StatelessWidget {
   final Widget? trailing;
   final TextInputType? keyboardType;
   final int? maxLength;
+  final int minLines;
   final int maxLines;
   final FocusNode? focusNode;
   final void Function(String)? onSubmitted;
@@ -25,6 +26,7 @@ class NeuTextField extends StatelessWidget {
     this.trailing,
     this.keyboardType,
     this.maxLength,
+    this.minLines = 1,
     this.maxLines = 1,
     this.focusNode,
     this.onSubmitted,
@@ -44,7 +46,9 @@ class NeuTextField extends StatelessWidget {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.end : CrossAxisAlignment.center,
+        crossAxisAlignment: maxLines > minLines
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.center,
         children: [
           Expanded(
             child: TextField(
@@ -52,6 +56,7 @@ class NeuTextField extends StatelessWidget {
               obscureText: obscure,
               keyboardType: keyboardType,
               maxLength: maxLength,
+              minLines: minLines,
               maxLines: maxLines,
               focusNode: focusNode,
               onSubmitted: onSubmitted,

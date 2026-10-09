@@ -32,6 +32,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
   final _api = ApiClient();
   final _searchController = TextEditingController();
   Timer? _debounce;
+  Timer? _reloadDebounce;
 
   List<Conversation> _conversations = [];
   List<SearchUser> _searchResults = [];
@@ -40,13 +41,32 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
   String? _error;
   bool _profileHintSeen = true;
   _HeadTab _headTab = _HeadTab.chats;
+  int _seenConversationsRevision = 0;
 
   @override
   void initState() {
     super.initState();
+    _seenConversationsRevision = widget.appState.conversationsRevision;
     _load();
     _loadHintState();
     _searchController.addListener(_onSearchChanged);
+    widget.appState.addListener(_onAppState);
+  }
+
+  void _onAppState() {
+    if (!mounted) return;
+    final rev = widget.appState.conversationsRevision;
+    if (rev != _seenConversationsRevision) {
+      _seenConversationsRevision = rev;
+      _scheduleConversationsReload();
+    }
+  }
+
+  void _scheduleConversationsReload() {
+    _reloadDebounce?.cancel();
+    _reloadDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) _load(silent: true);
+    });
   }
 
   Future<void> _loadHintState() async {
@@ -54,18 +74,25 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     if (mounted) setState(() => _profileHintSeen = seen);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final list = await _api.conversations();
-      if (mounted) setState(() => _conversations = list);
+      if (!mounted) return;
+      setState(() {
+        _conversations = list;
+        _error = null;
+      });
+      widget.appState.clearUnreadBumps();
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.userMessage);
+      if (mounted && !silent) setState(() => _error = e.userMessage);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !silent) setState(() => _loading = false);
     }
   }
 
@@ -153,7 +180,9 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
 
   @override
   void dispose() {
+    widget.appState.removeListener(_onAppState);
     _debounce?.cancel();
+    _reloadDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }

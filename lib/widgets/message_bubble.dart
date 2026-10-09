@@ -34,8 +34,8 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   // Локальні кольори нейоморфізму (фон як у решти екрана).
   static const Color _neuBg = Color(0xFFE0E5EC);
-  static const Color _neuLight = Color(0xCCFFFFFF);
-  static const Color _neuDark = Color(0x40A3B1C6);
+  static const Color _neuLight = Color(0xFFFFFFFF);
+  static const Color _neuDark = Color(0x66A3B1C6);
   static const Color _myAvatarText = Color(0xFF6C8EBF);
 
   static const double _avatarSize = 40;
@@ -187,8 +187,8 @@ class _MessageBubbleState extends State<MessageBubble> {
         color: bubbleColor,
         borderRadius: radius,
         boxShadow: const [
-          BoxShadow(color: _neuDark, blurRadius: 14, offset: Offset(5, 5)),
-          BoxShadow(color: _neuLight, blurRadius: 12, offset: Offset(-4, -4)),
+          BoxShadow(color: _neuDark, blurRadius: 18, spread: Offset(7, 7), spreadRadius: 1),
+          BoxShadow(color: _neuLight, blurRadius: 14, offset: Offset(-5, -5)),
         ],
       ),
       child: Column(

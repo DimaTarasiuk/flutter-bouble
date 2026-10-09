@@ -20,7 +20,18 @@ class AppState extends ChangeNotifier {
   /// (поки список розмов не перезавантажили — оновлюється через events).
   final Map<int, int> unreadBump = {};
 
+  /// Збільшується на кожне вхідне `chat_message` поза активним чатом —
+  /// список розмов може перезавантажитись і підтягнути unread з REST.
+  int conversationsRevision = 0;
+
   bool _started = false;
+
+  static int? _asInt(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
 
   Future<void> start() async {
     if (_started) return;
@@ -32,6 +43,12 @@ class AppState extends ChangeNotifier {
   void setActiveConversation(int? id) {
     activeConversationId = id;
     if (id != null) unreadBump.remove(id);
+  }
+
+  void clearUnreadBumps() {
+    if (unreadBump.isEmpty) return;
+    unreadBump.clear();
+    notifyListeners();
   }
 
   void setFeedbackUnread(int count) {
@@ -95,9 +112,10 @@ class AppState extends ChangeNotifier {
         break;
 
       case 'chat_message':
-        final convId = e.raw['conversation_id'];
-        if (convId is int && convId != activeConversationId) {
+        final convId = _asInt(e.raw['conversation_id']);
+        if (convId != null && convId != activeConversationId) {
           unreadBump[convId] = (unreadBump[convId] ?? 0) + 1;
+          conversationsRevision++;
           SoundService.playNewMessage();
           notifyListeners();
         }

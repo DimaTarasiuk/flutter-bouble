@@ -296,30 +296,36 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final peerOnline = widget.appState.online.contains(widget.conversation.peer);
+    return AnimatedBuilder(
+      animation: widget.appState,
+      builder: (context, _) {
+        final peerOnline =
+            widget.appState.online.contains(widget.conversation.peer);
 
-    return Scaffold(
-      backgroundColor: kBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(peerOnline),
-            Expanded(
-              child: _loadingInitial
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildMessageList(),
+        return Scaffold(
+          backgroundColor: kBg,
+          body: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(peerOnline),
+                Expanded(
+                  child: _loadingInitial
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildMessageList(),
+                ),
+                if (_replyTarget != null) _buildReplyBanner(),
+                if (_editTarget != null) _buildEditBanner(),
+                if (_showEmoji)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: EmojiPanel(onPick: _insertEmoji),
+                  ),
+                _buildInputBar(),
+              ],
             ),
-            if (_replyTarget != null) _buildReplyBanner(),
-            if (_editTarget != null) _buildEditBanner(),
-            if (_showEmoji)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: EmojiPanel(onPick: _insertEmoji),
-              ),
-            _buildInputBar(),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
