@@ -23,11 +23,15 @@ jobs:
         run: rm -rf android build
 
       - name: Generate Android platform files
-        run: flutter create --project-name login_app --org com.example --platforms=android .
+        run: flutter create --project-name bouble_chat --org com.bouble --platforms=android .
 
       - name: Add Internet permission
         run: |
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+
+      - name: Set app display name
+        run: |
+          sed -i 's/android:label="[^"]*"/android:label="Bouble Chat"/' android/app/src/main/AndroidManifest.xml
 
       - name: Check Android Manifest
         run: |
@@ -51,11 +55,14 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: Rename APK
+        run: mv build/app/outputs/flutter-apk/app-release.apk bouble-chat.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: bouble-chat-apk
+          path: bouble-chat.apk
 
   windows:
     runs-on: windows-2022
@@ -75,7 +82,7 @@ jobs:
           Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
 
       - name: Generate platform files
-        run: flutter create --project-name login_app --org com.example --platforms=windows .
+        run: flutter create --project-name bouble_chat --org com.bouble --platforms=windows .
 
       - name: Install dependencies
         run: flutter pub get
@@ -88,13 +95,13 @@ jobs:
 
       - name: Zip the build
         run: |
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath login_app-windows.zip
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath bouble-chat-windows.zip
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-windows
-          path: login_app-windows.zip
+          name: bouble-chat-windows
+          path: bouble-chat-windows.zip
 
   macos:
     runs-on: macos-latest
@@ -112,7 +119,14 @@ jobs:
         run: rm -rf macos build
 
       - name: Generate platform files
-        run: flutter create --project-name login_app --org com.example --platforms=macos .
+        run: flutter create --project-name bouble_chat --org com.bouble --platforms=macos .
+
+      - name: Set app display name
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName Bouble Chat" macos/Runner/Info.plist || \
+            /usr/libexec/PlistBuddy -c "Add :CFBundleName string 'Bouble Chat'" macos/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Bouble Chat" macos/Runner/Info.plist || \
+            /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Bouble Chat'" macos/Runner/Info.plist
 
       - name: Allow cleartext HTTP traffic
         run: |
@@ -134,13 +148,13 @@ jobs:
         run: |
           cd build/macos/Build/Products/Release
           APP_NAME=$(find . -maxdepth 1 -name "*.app" -exec basename {} \;)
-          ditto -c -k --keepParent "$APP_NAME" ../../../../../login_app-macos.zip
+          ditto -c -k --keepParent "$APP_NAME" ../../../../../bouble-chat-macos.zip
 
       - name: Upload macOS build
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-macos
-          path: login_app-macos.zip
+          name: bouble-chat-macos
+          path: bouble-chat-macos.zip
 
   release:
     needs: [android, windows, macos]
@@ -151,7 +165,7 @@ jobs:
       - name: Download successful build artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: app-release-*
+          pattern: bouble-chat-*
           path: release-files
           merge-multiple: true
 

@@ -483,13 +483,10 @@ class _ChatScreenState extends State<ChatScreen> {
               verticalPadding: 8,
               trailing: GestureDetector(
                 onTap: () => setState(() => _showEmoji = !_showEmoji),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Icon(
-                    Icons.emoji_emotions_outlined,
-                    color: _showEmoji ? kAccentBlue : kTextMuted,
-                    size: 22,
-                  ),
+                child: Icon(
+                  Icons.emoji_emotions_outlined,
+                  color: _showEmoji ? kAccentBlue : kTextMuted,
+                  size: 22,
                 ),
               ),
             ),
