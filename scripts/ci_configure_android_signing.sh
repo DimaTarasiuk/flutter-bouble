@@ -17,44 +17,51 @@ mkdir -p "$ANDROID_APP"
 cp "$SIGNING_DIR/bouble-upload.jks" "$ANDROID_APP/bouble-upload.jks"
 cp "$SIGNING_DIR/key.properties" "$ROOT/android/key.properties"
 
-GRADLE_GROOVY="$ANDROID_APP/build.gradle"
-GRADLE_KTS="$ANDROID_APP/build.gradle.kts"
-
 python3 - <<'PY'
 from pathlib import Path
 import re
 import sys
 
 root = Path(".")
+props_path = root / "android" / "key.properties"
 groovy = root / "android/app/build.gradle"
 kts = root / "android/app/build.gradle.kts"
 
+props = {}
+for line in props_path.read_text().splitlines():
+    line = line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    k, v = line.split("=", 1)
+    props[k.strip()] = v.strip()
+
+required = ("storePassword", "keyPassword", "keyAlias", "storeFile")
+missing = [k for k in required if k not in props]
+if missing:
+    sys.exit(f"key.properties missing: {', '.join(missing)}")
+
+def kt_str(s: str) -> str:
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+def groovy_str(s: str) -> str:
+    return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def patch_groovy(text: str) -> str:
-    header = """
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
-"""
-    if "keystoreProperties" not in text:
-        text = header + text
-
-    signing_configs = """
-    signingConfigs {
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-        }
-    }
+    # Prefer inlined values — avoids FileInputStream / AGP script classpath issues
+    signing_configs = f"""
+    signingConfigs {{
+        release {{
+            keyAlias {groovy_str(props['keyAlias'])}
+            keyPassword {groovy_str(props['keyPassword'])}
+            storeFile file({groovy_str(props['storeFile'])})
+            storePassword {groovy_str(props['storePassword'])}
+        }}
+    }}
 """
     if "signingConfigs {" not in text:
         text = text.replace("android {", "android {" + signing_configs, 1)
 
-    # Replace any debug signing assignment on release builds
     text = re.sub(
         r"signingConfig\s*=\s*signingConfigs\.debug",
         "signingConfig = signingConfigs.release",
@@ -67,7 +74,7 @@ if (keystorePropertiesFile.exists()) {
     )
     if "signingConfigs.release" not in text:
         text = re.sub(
-            r"(buildTypes\s*\{[^\]]*?\brelease\s*\{)",
+            r"(buildTypes\s*\{.*?\brelease\s*\{)",
             r"\1\n            signingConfig signingConfigs.release",
             text,
             count=1,
@@ -77,26 +84,16 @@ if (keystorePropertiesFile.exists()) {
 
 
 def patch_kts(text: str) -> str:
-    header = """
-val keystoreProperties = java.util.Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
-}
-
-"""
-    if "keystoreProperties" not in text:
-        text = header + text
-
-    signing_configs = """
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
-        }
-    }
+    # Inline credentials — do NOT use java.util.Properties (breaks on modern AGP/Kotlin DSL)
+    signing_configs = f"""
+    signingConfigs {{
+        create("release") {{
+            keyAlias = {kt_str(props['keyAlias'])}
+            keyPassword = {kt_str(props['keyPassword'])}
+            storeFile = file({kt_str(props['storeFile'])})
+            storePassword = {kt_str(props['storePassword'])}
+        }}
+    }}
 """
     if "signingConfigs {" not in text:
         text = text.replace("android {", "android {" + signing_configs, 1)
@@ -106,9 +103,15 @@ if (keystorePropertiesFile.exists()) {
         'signingConfig = signingConfigs.getByName("release")',
         text,
     )
+    # Also handle older style without getByName
+    text = re.sub(
+        r"signingConfig\s*=\s*signingConfigs\.debug",
+        'signingConfig = signingConfigs.getByName("release")',
+        text,
+    )
     if 'getByName("release")' not in text:
         text = re.sub(
-            r"(buildTypes\s*\{[^\]]*?\brelease\s*\{)",
+            r"(buildTypes\s*\{.*?\brelease\s*\{)",
             r'\1\n            signingConfig = signingConfigs.getByName("release")',
             text,
             count=1,
@@ -126,6 +129,22 @@ elif groovy.exists():
 else:
     sys.exit("No android/app/build.gradle(.kts) found")
 
+# Strip any previously injected Properties() header that breaks AGP 9
+patched = re.sub(
+    r"\n?val keystoreProperties = java\.util\.Properties\(\).*?keystoreProperties\.load\(java\.io\.FileInputStream\(keystorePropertiesFile\)\)\n\}\n*",
+    "\n",
+    patched,
+    count=1,
+    flags=re.S,
+)
+patched = re.sub(
+    r"\n?def keystoreProperties = new Properties\(\).*?keystoreProperties\.load\(new FileInputStream\(keystorePropertiesFile\)\)\n\}\n*",
+    "\n",
+    patched,
+    count=1,
+    flags=re.S,
+)
+
 if "signingConfigs {" not in patched:
     sys.exit("Failed to inject signingConfigs")
 if "signingConfigs.release" not in patched and 'getByName("release")' not in patched:
@@ -133,6 +152,7 @@ if "signingConfigs.release" not in patched and 'getByName("release")' not in pat
 
 path.write_text(patched)
 print(f"Patched {path}")
+print("Release signing uses inlined key.properties values (no java.util.Properties).")
 PY
 
 echo "Android release signing configured."
