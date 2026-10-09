@@ -20,6 +20,8 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   final _api = ApiClient();
   final _appState = AppState();
+  /// Nested navigator for chats/profile — announcement overlay stays above (як на вебі).
+  final _navKey = GlobalKey<NavigatorState>();
   AppUser? _me;
   bool _loading = true;
   String? _loginNotice; // "banned" / "kicked" — показати на екрані входу після force_logout
@@ -90,12 +92,19 @@ class _HomeShellState extends State<HomeShell> {
       return const Scaffold(backgroundColor: kBg);
     }
 
+    final me = _me!;
     return AnimatedBuilder(
       animation: _appState,
       builder: (context, _) {
         return Stack(
           children: [
-            ConversationsListScreen(appState: _appState, me: _me!),
+            // Чати / профіль пушаться сюди — попап лишається зверху, як на вебі.
+            Navigator(
+              key: _navKey,
+              onGenerateRoute: (_) => MaterialPageRoute(
+                builder: (_) => ConversationsListScreen(appState: _appState, me: me),
+              ),
+            ),
             if (_appState.announcementQueue.isNotEmpty)
               AnnouncementPopup(
                 announcement: _appState.announcementQueue.first,

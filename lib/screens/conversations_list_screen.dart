@@ -160,7 +160,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     await SessionStore.clear();
     widget.appState.disposeAll();
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
     );
