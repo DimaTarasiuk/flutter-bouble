@@ -55,6 +55,9 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
 
   void _onAppState() {
     if (!mounted) return;
+    // Presence / onlineCount / feedback — потрібен setState, щоб рядки чатів
+    // оновлювались у реальному часі (не лише через батьківський AnimatedBuilder).
+    setState(() {});
     final rev = widget.appState.conversationsRevision;
     if (rev != _seenConversationsRevision) {
       _seenConversationsRevision = rev;
@@ -369,6 +372,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
         child: Text('Нікого не знайдено', style: TextStyle(color: kTextMuted)),
       );
     }
+    final online = widget.appState.online;
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       itemCount: _searchResults.length,
@@ -377,7 +381,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
         return _UserRow(
           username: u.username,
           gender: u.gender,
-          online: u.online,
+          online: online.contains(u.username) || u.online,
           onTap: () => _openWithUser(u.username),
         );
       },

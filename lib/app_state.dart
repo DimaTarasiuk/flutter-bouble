@@ -66,13 +66,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  static Set<String> _parseOnlineList(dynamic raw) {
+    if (raw is! List) return {};
+    final result = <String>{};
+    for (final e in raw) {
+      if (e is String) {
+        if (e.isNotEmpty) result.add(e);
+      } else if (e is Map) {
+        final name = (e['username'] ?? e['user'] ?? '').toString();
+        if (name.isNotEmpty) result.add(name);
+      }
+    }
+    return result;
+  }
+
   void _onEvent(PresenceEvent e) {
     switch (e.type) {
       case 'presence_snapshot':
-        final list = (e.raw['online'] as List?)?.cast<String>() ?? [];
-        online = list.toSet();
-        final count = e.raw['online_count'];
-        if (count is int) onlineCount = count;
+        online = _parseOnlineList(e.raw['online']);
+        final count = _asInt(e.raw['online_count']);
+        if (count != null) onlineCount = count;
         notifyListeners();
         break;
 
@@ -80,20 +93,21 @@ class AppState extends ChangeNotifier {
         final user = e.raw['user'] as String?;
         final isOnline = e.raw['online'] as bool? ?? false;
         if (user != null) {
+          // Новий Set — щоб UI точно побачив зміну після notifyListeners.
           if (isOnline) {
-            online.add(user);
+            online = {...online, user};
           } else {
-            online.remove(user);
+            online = {...online}..remove(user);
           }
         }
-        final count = e.raw['online_count'];
-        if (count is int) onlineCount = count;
+        final count = _asInt(e.raw['online_count']);
+        if (count != null) onlineCount = count;
         notifyListeners();
         break;
 
       case 'online_count':
-        final count = e.raw['online_count'] ?? e.raw['count'];
-        if (count is int) {
+        final count = _asInt(e.raw['online_count'] ?? e.raw['count']);
+        if (count != null) {
           onlineCount = count;
           notifyListeners();
         }

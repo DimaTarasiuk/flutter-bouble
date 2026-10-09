@@ -30,6 +30,11 @@ class _UsersPanelState extends State<UsersPanel> {
     super.initState();
     _load();
     _filterController.addListener(() => setState(() {}));
+    widget.appState.addListener(_onAppState);
+  }
+
+  void _onAppState() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -49,6 +54,7 @@ class _UsersPanelState extends State<UsersPanel> {
 
   @override
   void dispose() {
+    widget.appState.removeListener(_onAppState);
     _filterController.dispose();
     super.dispose();
   }
@@ -84,6 +90,7 @@ class _UsersPanelState extends State<UsersPanel> {
                             itemCount: filtered.length,
                             itemBuilder: (context, i) {
                               final u = filtered[i];
+                              final isOnline = widget.appState.online.contains(u.username);
                               return NeuPress(
                                 onTap: () {
                                   Navigator.of(context).push(
@@ -112,7 +119,8 @@ class _UsersPanelState extends State<UsersPanel> {
                                           size: 36,
                                           bg: kAccentPink,
                                           showDot: true,
-                                          online: u.online,
+                                          online: isOnline,
+                                          gender: u.gender,
                                         ),
                                       ),
                                       const SizedBox(width: 14),
@@ -138,10 +146,12 @@ class _UsersPanelState extends State<UsersPanel> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              u.online ? 'Online' : (u.lastSeen ?? 'Offline'),
+                                              isOnline ? 'Online' : (u.lastSeen ?? 'Offline'),
                                               style: TextStyle(
                                                 fontSize: 12.5,
-                                                color: u.online ? kOnlineDefault : kTextMuted,
+                                                color: isOnline
+                                                    ? onlineColorForGender(u.gender)
+                                                    : kTextMuted,
                                               ),
                                             ),
                                           ],
