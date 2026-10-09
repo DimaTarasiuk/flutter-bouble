@@ -182,6 +182,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (idx != -1) _messages[idx] = _messages[idx].copyWith(text: text, edited: true);
         _editTarget = null;
         _inputController.clear();
+        _showEmoji = false;
       });
       try {
         await _api.editMessage(widget.conversation.id, target.id as int, text);
@@ -208,6 +209,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.add(temp);
       _inputController.clear();
       _replyTarget = null;
+      _showEmoji = false;
       _sending = true;
     });
     _scrollToBottom();
