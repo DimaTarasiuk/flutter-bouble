@@ -187,7 +187,7 @@ class _MessageBubbleState extends State<MessageBubble> {
         color: bubbleColor,
         borderRadius: radius,
         boxShadow: const [
-          BoxShadow(color: _neuDark, blurRadius: 18, spread: Offset(7, 7), spreadRadius: 1),
+          BoxShadow(color: _neuDark, blurRadius: 18, offset: Offset(7, 7)),
           BoxShadow(color: _neuLight, blurRadius: 14, offset: Offset(-5, -5)),
         ],
       ),
