@@ -469,8 +469,6 @@ class _ChatScreenState extends State<ChatScreen> {
           Avatar(
             username: widget.conversation.peer,
             size: 38,
-            bg: const Color(0xFFF5F7FA),
-            initialsColor: kAccentPink,
             showDot: true,
             online: peerOnline,
             gender: widget.conversation.peerGender,

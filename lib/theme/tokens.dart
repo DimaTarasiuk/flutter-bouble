@@ -14,9 +14,14 @@ const Color kAccentBlue = Color(0xFF6B8FB5);
 const Color kAccentPink = Color(0xFFC084A0);
 const Color kSendGrey = Color(0xFF868E99);
 
-const Color kOnlineMale = Color(0xFF60A5FA);
+// Оновлена палітра (гілка style_improvement веб-клієнта)
+const Color kNameAbbr = Color(0xFFE01B77); // єдиний колір ініціалів аватарів
+const Color kNotifyBadge = Color(0xDEDC2B7E); // rgb(220 43 126 / 87%)
+const Color kOnlineRing = Color(0xFFE0E5EC); // тонке кільце навколо індикатора онлайн
+
+const Color kOnlineMale = Color(0xED1F83FF); // rgb(31 131 255 / 93%)
 const Color kOnlineFemale = Color(0xFFF9A8D4);
-const Color kOnlineDefault = Color(0xFF86EFAC);
+const Color kOnlineDefault = Color(0xFF26B55A);
 const Color kOfflineDot = Color(0xFFC5CAD3);
 
 const Color kDivider = Color.fromRGBO(163, 177, 198, 0.35);

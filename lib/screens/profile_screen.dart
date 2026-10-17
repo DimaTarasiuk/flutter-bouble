@@ -127,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: GestureDetector(
                   onTap: _showAvatarTip,
-                  child: Avatar(username: widget.me.username, size: 88, bg: kAccentBlue),
+                  child: Avatar(username: widget.me.username, size: 88, raised: true),
                 ),
               ),
               const SizedBox(height: 24),

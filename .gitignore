@@ -12,3 +12,12 @@ build/
 signing/*.jks
 signing/*.keystore
 signing/key.properties
+
+android/
+ios/
+macos/
+web/
+linux/
+windows/
+analysis_options.yaml
+test/

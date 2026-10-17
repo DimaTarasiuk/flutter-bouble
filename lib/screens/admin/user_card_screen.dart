@@ -176,7 +176,7 @@ class _UserCardScreenState extends State<UserCardScreen> {
                         ),
                         const SizedBox(height: 10),
                         Center(
-                          child: Avatar(username: widget.username, size: 80, bg: kAccentPink),
+                          child: Avatar(username: widget.username, size: 80, raised: true),
                         ),
                         const SizedBox(height: 20),
                         NeuCard(
