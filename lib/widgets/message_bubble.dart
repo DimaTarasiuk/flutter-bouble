@@ -33,7 +33,6 @@ class _MessageBubbleState extends State<MessageBubble>
   static const Color _neuBg = Color(0xFFE0E5EC);
   static const Color _neuLight = Color(0xFFFFFFFF);
   static const Color _neuDark = Color(0x66A3B1C6);
-  static const Color _myAvatarText = Color(0xFF6C8EBF);
 
   static const double _avatarSize = 40;
 
@@ -115,7 +114,8 @@ class _MessageBubbleState extends State<MessageBubble>
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w800,
-          color: widget.isMine ? _myAvatarText : kAccentPink,
+          color: kNameAbbr,
+          letterSpacing: 13 * 0.02,
         ),
       ),
     );

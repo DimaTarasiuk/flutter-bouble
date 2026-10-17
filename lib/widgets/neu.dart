@@ -144,6 +144,7 @@ class Avatar extends StatelessWidget {
   final double size;
   final Color bg;
   final Color initialsColor;
+  final bool raised; // неоморфна тінь навколо кола (для великих аватарів)
   final bool showDot;
   final bool online;
   final String? gender;
@@ -152,8 +153,9 @@ class Avatar extends StatelessWidget {
     super.key,
     required this.username,
     this.size = 44,
-    this.bg = kAccentPink,
-    this.initialsColor = Colors.white,
+    this.bg = kBg,
+    this.initialsColor = kNameAbbr,
+    this.raised = false,
     this.showDot = false,
     this.online = false,
     this.gender,
@@ -176,27 +178,48 @@ class Avatar extends StatelessWidget {
           width: size,
           height: size,
           alignment: Alignment.center,
-          decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: bg,
+            shape: BoxShape.circle,
+            boxShadow: raised
+                ? [
+                    BoxShadow(
+                      color: kShadowDark.withOpacity(0.9),
+                      offset: const Offset(5, 5),
+                      blurRadius: 10,
+                    ),
+                    const BoxShadow(
+                      color: kShadowLight,
+                      offset: Offset(-5, -5),
+                      blurRadius: 10,
+                    ),
+                  ]
+                : null,
+          ),
           child: Text(
             _initials,
             style: TextStyle(
               color: initialsColor,
               fontWeight: FontWeight.w800,
               fontSize: size * 0.36,
+              letterSpacing: size * 0.36 * 0.02,
             ),
           ),
         ),
         if (showDot)
           Positioned(
-            right: -1,
-            bottom: -1,
+            right: 0,
+            bottom: 0,
             child: Container(
-              width: size * 0.3,
-              height: size * 0.3,
+              width: size * 0.25,
+              height: size * 0.25,
               decoration: BoxDecoration(
                 color: dotColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: kBg, width: 2),
+                // CSS: 0 0 0 1px — тонке кільце без розмиття
+                boxShadow: const [
+                  BoxShadow(color: kOnlineRing, spreadRadius: 1, blurRadius: 0),
+                ],
               ),
             ),
           ),

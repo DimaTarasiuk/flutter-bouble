@@ -118,7 +118,6 @@ class _UsersPanelState extends State<UsersPanel> {
                                         child: Avatar(
                                           username: u.username,
                                           size: 36,
-                                          bg: kAccentPink,
                                           showDot: true,
                                           online: isOnline,
                                           gender: u.gender,

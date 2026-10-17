@@ -8,6 +8,7 @@ import '../session_store.dart';
 import '../theme/tokens.dart';
 import '../widgets/neu.dart';
 import 'chat_screen.dart';
+import '../widgets/booblify_logo.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 import 'feedback_sheet.dart';
@@ -319,7 +320,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 width: 44,
                 height: 44,
                 decoration: neuBox(d: 4, b: 8, radius: 22),
-                child: Avatar(username: widget.me.username, size: 36, bg: kAccentBlue),
+                child: Avatar(username: widget.me.username, size: 36),
               ),
             ),
           ),
@@ -328,18 +329,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(
-                  text: const TextSpan(
-                    children: [
-                      TextSpan(
-                          text: 'Bouble ',
-                          style: TextStyle(color: kTextMuted, fontWeight: FontWeight.w800, fontSize: 19)),
-                      TextSpan(
-                          text: 'Chat',
-                          style: TextStyle(color: kTextMain, fontWeight: FontWeight.w800, fontSize: 19)),
-                    ],
-                  ),
-                ),
+                const BooblifyLogo(),
                 Text(
                   staff ? 'Онлайн зараз: ${widget.appState.onlineCount}' : 'Приватні чати',
                   style: const TextStyle(fontSize: 12.5, color: kTextMuted),
@@ -495,8 +485,6 @@ class _UserRow extends StatelessWidget {
               child: Avatar(
                 username: username,
                 size: 36,
-                bg: const Color(0xFFF5F7FA),
-                initialsColor: kAccentPink,
                 showDot: true,
                 online: online,
                 gender: gender,
@@ -530,10 +518,12 @@ class _UserRow extends StatelessWidget {
             ),
             if (unreadCount > 0)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                height: 22,
+                padding: const EdgeInsets.symmetric(horizontal: 7),
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: kAccentPink,
-                  borderRadius: BorderRadius.circular(12),
+                  color: kNotifyBadge,
+                  borderRadius: BorderRadius.circular(50),
                 ),
                 child: Text(
                   unreadCount > 99 ? '99+' : '$unreadCount',
