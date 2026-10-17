@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api_client.dart';
+import '../widgets/booblify_logo.dart';
 import '../widgets/neu.dart';
 import 'home_shell.dart';
 
@@ -129,6 +130,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const BooblifyLogo(fontSize: 28),
+                  const SizedBox(height: 24),
                   const Text(
                     'Реєстрація',
                     style: TextStyle(

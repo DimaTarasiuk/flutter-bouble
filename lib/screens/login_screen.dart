@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../config.dart';
+import '../widgets/booblify_logo.dart';
 import '../widgets/neu.dart';
 import 'register_screen.dart';
 import 'home_shell.dart';
@@ -141,12 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 96,
-                        height: 96,
-                        decoration: neuRaised(radius: 48),
-                        child: const Icon(Icons.person, size: 48, color: kAccentBlue),
-                      ),
+                      const BooblifyLogo(fontSize: 28),
                       const SizedBox(height: 24),
                       const Text(
                         'Вхід',
