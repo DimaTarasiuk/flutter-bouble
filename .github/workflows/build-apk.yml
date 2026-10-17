@@ -31,7 +31,7 @@ jobs:
 
       - name: Set app display name
         run: |
-          sed -i 's/android:label="[^"]*"/android:label="Bouble Chat"/' android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="[^"]*"/android:label="Booblify"/' android/app/src/main/AndroidManifest.xml
 
       - name: Check Android Manifest
         run: |
