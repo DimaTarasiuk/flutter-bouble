@@ -19,6 +19,11 @@ dependencies:
   fl_chart: ^0.69.0
   flutter_inset_shadow: ^2.0.3
 
+# CI resolved a newer JNI-based shared_preferences_android that crashes on
+# launch (NoSuchMethodError ...SharedPreferencesApiRegistrar.getAll) -> app hangs on loading.
+dependency_overrides:
+  shared_preferences_android: 2.4.28
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

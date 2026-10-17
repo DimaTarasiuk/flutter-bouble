@@ -81,7 +81,7 @@ jobs:
 
       # build-number = GitHub run_number → each CI APK can install over the previous one
       - name: Build APK
-        run: flutter build apk --release --no-shrink --build-name=1.0.${{ github.run_number }} --build-number=${{ github.run_number }}
+        run: flutter build apk --release --build-name=1.0.${{ github.run_number }} --build-number=${{ github.run_number }}
 
       - name: Rename APK
         run: mv build/app/outputs/flutter-apk/app-release.apk bouble-chat.apk
