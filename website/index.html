@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Booblify — завантажити</title>
+<meta name="description" content="Booblify — простий месенджер. Завантаж APK або встанови як PWA.">
+<meta name="theme-color" content="#E0E5EC">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Booblify">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
@@ -301,6 +310,33 @@
   }
   .btn-download svg { width: 20px; height: 20px; flex-shrink: 0; }
 
+  .btn-pwa {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 17px 26px;
+    border: none;
+    border-radius: 30px;
+    background: var(--surface);
+    color: var(--text-dark);
+    font-family: inherit;
+    font-size: 1.02rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 7px 7px 16px var(--shadow-dark), -7px -7px 16px var(--shadow-light);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-pwa.is-visible { display: inline-flex; }
+  .btn-pwa:hover {
+    box-shadow: 4px 4px 10px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
+  }
+  .btn-pwa:active {
+    box-shadow: inset 4px 4px 10px var(--shadow-dark), inset -4px -4px 10px var(--shadow-light);
+    transform: scale(0.99);
+  }
+  .btn-pwa svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--accent); }
+
   .meta-note {
     font-size: 0.88rem;
     color: var(--text-gray);
@@ -462,14 +498,23 @@
           </svg>
           <span id="mainLinkLabel">Завантажити</span>
         </a>
+        <button type="button" class="btn-pwa" id="pwaInstallBtn" aria-label="Встановити як застосунок">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 11v6m0 0l-2.5-2.5M12 17l2.5-2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span id="pwaInstallLabel">Встановити як застосунок</span>
+        </button>
         <span class="meta-note" id="mainLinkMeta">v1.0</span>
       </div>
 
       <div class="other-platforms" id="otherPlatforms"></div>
       <p class="install-tip" id="installTip"></p>
+      <p class="install-tip" id="pwaTip" hidden></p>
 
       <ul class="features">
         <li><span class="dot"></span>Легкий та швидкий запуск</li>
+        <li><span class="dot"></span>Можна встановити як PWA з браузера</li>
         <li><span class="dot"></span>Не потребує Google Play</li>
         <li><span class="dot"></span>Оновлення без зайвих дозволів</li>
       </ul>
@@ -547,7 +592,81 @@
     if (i < otherKeys.length - 1) html += '<span class="sep"> · </span>';
   });
   otherWrap.innerHTML = html;
+
+  /* ---------- PWA ---------- */
+  var deferredPrompt = null;
+  var pwaBtn = document.getElementById('pwaInstallBtn');
+  var pwaLabel = document.getElementById('pwaInstallLabel');
+  var pwaTip = document.getElementById('pwaTip');
+
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+  }
+
+  function isIos() {
+    var ua = navigator.userAgent || '';
+    return /iPhone|iPad|iPod/i.test(ua)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function showPwaBtn(label) {
+    if (label) pwaLabel.textContent = label;
+    pwaBtn.classList.add('is-visible');
+  }
+
+  function hidePwaBtn() {
+    pwaBtn.classList.remove('is-visible');
+  }
+
+  if (isStandalone()) {
+    hidePwaBtn();
+    pwaTip.hidden = true;
+  } else if (isIos()) {
+    showPwaBtn('Додати на екран');
+    pwaTip.hidden = false;
+    pwaTip.textContent = 'Safari → Поділитися → На початковий екран.';
+  }
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    showPwaBtn('Встановити як застосунок');
+    pwaTip.hidden = true;
+  });
+
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+    hidePwaBtn();
+    pwaTip.hidden = false;
+    pwaTip.textContent = 'Booblify додано на пристрій.';
+  });
+
+  pwaBtn.addEventListener('click', function () {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function () {
+        deferredPrompt = null;
+        hidePwaBtn();
+      });
+      return;
+    }
+    if (isIos()) {
+      pwaTip.hidden = false;
+      pwaTip.textContent = 'Safari → Поділитися → На початковий екран.';
+      return;
+    }
+    pwaTip.hidden = false;
+    pwaTip.textContent = 'У меню браузера обери «Встановити застосунок» / «Додати на головний екран».';
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    });
+  }
 </script>
 
 </body>
 </html>
+
