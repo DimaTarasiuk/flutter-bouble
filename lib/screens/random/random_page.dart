@@ -29,7 +29,7 @@ class RandomPage extends StatefulWidget {
 }
 
 class _RandomPageState extends State<RandomPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _api = RandomApiClient();
   final _ws = RandomWsService();
   final _input = TextEditingController();
@@ -62,11 +62,26 @@ class _RandomPageState extends State<RandomPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),
     )..repeat(reverse: true);
     _bootstrap();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final token = _token;
+    if (token == null || token.isEmpty) return;
+    if (_phase != _Phase.searching &&
+        _phase != _Phase.chat &&
+        _phase != _Phase.peerLeft) {
+      return;
+    }
+    // Android often kills the WS in background; reconnect before grace expires.
+    unawaited(_ws.reconnectNow());
   }
 
   Future<void> _bootstrap() async {
@@ -124,8 +139,12 @@ class _RandomPageState extends State<RandomPage>
         await _expire('Сесія завершилась, почніть пошук знову');
         return;
       }
-      if (e.statusCode == 404 && _phase == _Phase.searching) {
-        await _search();
+      if (e.statusCode == 404) {
+        if (_phase == _Phase.searching) {
+          await _search();
+        } else if (_phase == _Phase.chat && mounted) {
+          setState(() => _phase = _Phase.peerLeft);
+        }
       }
     } catch (_) {}
   }
@@ -174,22 +193,40 @@ class _RandomPageState extends State<RandomPage>
     });
   }
 
+  /// Reset UI immediately; tear down WS/session in the background so Cancel never hangs.
   Future<void> _expire([String message = '']) async {
-    await _ws.disconnect();
+    final hadToken = _token;
+    if (mounted) {
+      setState(() {
+        _token = null;
+        _session = null;
+        _messages.clear();
+        _replyTo = null;
+        _input.clear();
+        _emojiOpen = false;
+        _confirmNext = false;
+        _starting = false;
+        _phase = _Phase.form;
+        _error = message.isEmpty ? null : message;
+        _connected = false;
+      });
+    }
+    // Local clear first so bootstrap won't restore a stuck session.
     await RandomSessionStore.clearGuestSession();
-    if (!mounted) return;
-    setState(() {
-      _token = null;
-      _session = null;
-      _messages.clear();
-      _replyTo = null;
-      _input.clear();
-      _emojiOpen = false;
-      _confirmNext = false;
-      _phase = _Phase.form;
-      _error = message.isEmpty ? null : message;
-      _connected = false;
-    });
+    // Don't await a hung socket — disconnect has its own short close timeout.
+    unawaited(_ws.disconnect());
+    if (hadToken != null) {
+      // Best-effort server cleanup; ignore failures/timeouts.
+      unawaited(() async {
+        try {
+          await _api.skip(hadToken).timeout(const Duration(seconds: 8));
+        } catch (_) {}
+      }());
+    }
+  }
+
+  Future<void> _leave() async {
+    await _expire();
   }
 
   String? _validate() {
@@ -308,22 +345,13 @@ class _RandomPageState extends State<RandomPage>
     }
   }
 
-  Future<void> _leave() async {
-    final token = _token;
-    if (token != null) {
-      try {
-        await _api.skip(token);
-      } catch (_) {}
-    }
-    await _expire();
-  }
 
   Future<void> _next() async {
     setState(() => _confirmNext = false);
     final token = _token;
     if (token != null) {
       try {
-        await _api.skip(token);
+        await _api.skip(token).timeout(const Duration(seconds: 8));
       } catch (_) {}
     }
     await _search();
@@ -382,6 +410,7 @@ class _RandomPageState extends State<RandomPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _wsSub?.cancel();
     _connSub?.cancel();
     _ws.dispose();
