@@ -447,6 +447,8 @@ class _RandomPageState extends State<RandomPage>
                 if (_phase == _Phase.form || _phase == _Phase.searching)
                   _buildBrandHeader(),
                 Expanded(child: _buildBody()),
+                if (_phase == _Phase.form || _phase == _Phase.searching)
+                  _buildVersionFooter(),
               ],
             ),
             if (_confirmNext) _buildConfirmModal(),
@@ -461,28 +463,19 @@ class _RandomPageState extends State<RandomPage>
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
       child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const BooblifyLogo(),
-                const SizedBox(height: 2),
-                FutureBuilder<String>(
-                  future: _appVersionLabel(),
-                  builder: (context, snap) {
-                    final v = snap.data;
-                    final label = (v == null || v.isEmpty)
-                        ? 'Інкогніто'
-                        : 'Інкогніто · $v';
-                    return Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: kTextMuted,
-                      ),
-                    );
-                  },
+                BooblifyLogo(),
+                SizedBox(height: 2),
+                Text(
+                  'Інкогніто',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: kTextMuted,
+                  ),
                 ),
               ],
             ),
@@ -505,6 +498,28 @@ class _RandomPageState extends State<RandomPage>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVersionFooter() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: FutureBuilder<String>(
+        future: _appVersionLabel(),
+        builder: (context, snap) {
+          final v = snap.data;
+          if (v == null || v.isEmpty) return const SizedBox.shrink();
+          return Text(
+            v,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: kTextMuted,
+            ),
+          );
+        },
       ),
     );
   }
