@@ -324,11 +324,10 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
             onTap: _openProfile,
             child: _ProfilePulse(
               enabled: !_profileHintSeen,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: neuBox(d: 4, b: 8, radius: 22),
-                child: Avatar(username: widget.me.username, size: 36),
+              child: Avatar(
+                username: widget.me.username,
+                size: 44,
+                raised: true,
               ),
             ),
           ),
@@ -459,8 +458,27 @@ class _ProfilePulse extends StatefulWidget {
 }
 
 class _ProfilePulseState extends State<_ProfilePulse> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.enabled) _c.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProfilePulse oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled && !_c.isAnimating) {
+      _c.repeat(reverse: true);
+    } else if (!widget.enabled && _c.isAnimating) {
+      _c.stop();
+      _c.value = 0;
+    }
+  }
 
   @override
   void dispose() {
@@ -474,8 +492,9 @@ class _ProfilePulseState extends State<_ProfilePulse> with SingleTickerProviderS
     return AnimatedBuilder(
       animation: _c,
       builder: (context, child) {
-        final scale = 1.0 + (_c.value * 0.08);
-        return Transform.scale(scale: scale, child: child);
+        // Opacity pulse — scale робив коло візуально «некруглим» (субпікселі).
+        final opacity = 0.72 + (_c.value * 0.28);
+        return Opacity(opacity: opacity, child: child);
       },
       child: widget.child,
     );
@@ -507,18 +526,13 @@ class _UserRow extends StatelessWidget {
         decoration: neuBox(d: 4, b: 10, radius: 18),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: neuBox(d: 4, b: 8, radius: 22),
-              alignment: Alignment.center,
-              child: Avatar(
-                username: username,
-                size: 36,
-                showDot: true,
-                online: online,
-                gender: gender,
-              ),
+            Avatar(
+              username: username,
+              size: 44,
+              raised: true,
+              showDot: true,
+              online: online,
+              gender: gender,
             ),
             const SizedBox(width: 14),
             Expanded(

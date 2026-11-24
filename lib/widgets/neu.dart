@@ -171,62 +171,66 @@ class Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dotColor = online ? onlineColorForGender(gender) : kOfflineDot;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: bg,
-            shape: BoxShape.circle,
-            boxShadow: raised
-                ? [
-                    BoxShadow(
-                      color: kShadowDark.withOpacity(0.9),
-                      offset: const Offset(5, 5),
-                      blurRadius: 10,
-                    ),
-                    const BoxShadow(
-                      color: kShadowLight,
-                      offset: Offset(-5, -5),
-                      blurRadius: 10,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              _initials,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: initialsColor,
-                fontWeight: FontWeight.w800,
-                fontSize: size * 0.36,
-                height: 1.0,
-                leadingDistribution: TextLeadingDistribution.even,
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: bg,
+              shape: BoxShape.circle,
+              boxShadow: raised
+                  ? [
+                      BoxShadow(
+                        color: kShadowDark.withValues(alpha: 0.9),
+                        offset: const Offset(4, 4),
+                        blurRadius: 8,
+                      ),
+                      const BoxShadow(
+                        color: kShadowLight,
+                        offset: Offset(-4, -4),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: Text(
+                _initials,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: initialsColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: size * 0.36,
+                  height: 1.0,
+                  leadingDistribution: TextLeadingDistribution.even,
+                ),
               ),
             ),
           ),
-        ),
-        if (showDot)
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: size * 0.25,
-              height: size * 0.25,
-              decoration: BoxDecoration(
-                color: dotColor,
-                shape: BoxShape.circle,
-                // CSS: 0 0 0 1px — тонке кільце без розмиття
-                boxShadow: const [
-                  BoxShadow(color: kOnlineRing, spreadRadius: 1, blurRadius: 0),
-                ],
+          if (showDot)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: size * 0.25,
+                height: size * 0.25,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                  boxShadow: const [
+                    BoxShadow(color: kOnlineRing, spreadRadius: 1, blurRadius: 0),
+                  ],
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
