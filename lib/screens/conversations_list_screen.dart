@@ -186,7 +186,36 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     );
   }
 
-  Future<void> _logout() => widget.onLogout();
+  Future<void> _logout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kBg,
+        title: const Text(
+          'Вийти?',
+          style: TextStyle(fontWeight: FontWeight.w800, color: kTextDark),
+        ),
+        content: const Text(
+          'Точно вийти з акаунта?',
+          style: TextStyle(color: kTextMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Ні'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Так',
+              style: TextStyle(fontWeight: FontWeight.w800, color: kAccentPink),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await widget.onLogout();
+  }
 
   void _openIncognito() => widget.onOpenIncognito();
 
