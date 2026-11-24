@@ -10,20 +10,28 @@ import '../widgets/neu.dart';
 import 'chat_screen.dart';
 import '../widgets/booblify_logo.dart';
 import 'profile_screen.dart';
-import 'login_screen.dart';
 import 'feedback_sheet.dart';
 import 'admin/users_panel.dart';
 import 'admin/stats_panel.dart';
 import 'admin/announcements_panel.dart';
 import 'admin/feedback_inbox_screen.dart';
+import 'admin/random_monitor_panel.dart';
 
-enum _HeadTab { chats, users, stats, news }
+enum _HeadTab { chats, users, stats, news, random }
 
 class ConversationsListScreen extends StatefulWidget {
   final AppState appState;
   final AppUser me;
+  final VoidCallback onOpenIncognito;
+  final Future<void> Function() onLogout;
 
-  const ConversationsListScreen({super.key, required this.appState, required this.me});
+  const ConversationsListScreen({
+    super.key,
+    required this.appState,
+    required this.me,
+    required this.onOpenIncognito,
+    required this.onLogout,
+  });
 
   @override
   State<ConversationsListScreen> createState() => _ConversationsListScreenState();
@@ -157,15 +165,9 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     );
   }
 
-  Future<void> _logout() async {
-    await SessionStore.clear();
-    widget.appState.disposeAll();
-    if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
+  Future<void> _logout() => widget.onLogout();
+
+  void _openIncognito() => widget.onOpenIncognito();
 
   void _openFeedback() {
     showModalBottomSheet(
@@ -263,6 +265,8 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
         return const StatsPanel();
       case _HeadTab.news:
         return const AnnouncementsPanel();
+      case _HeadTab.random:
+        return const RandomMonitorPanel();
       case _HeadTab.chats:
         return const SizedBox.shrink();
     }
@@ -283,8 +287,11 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
             alignment: Alignment.center,
             child: Text(
               label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: selected ? kAccentBlue : kTextMuted,
               ),
@@ -295,13 +302,14 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       child: Row(
         children: [
           tab(_HeadTab.chats, 'Чати'),
           tab(_HeadTab.users, 'Юзери'),
-          tab(_HeadTab.stats, 'Статистика'),
-          tab(_HeadTab.news, 'Оголошення'),
+          tab(_HeadTab.stats, 'Стат'),
+          tab(_HeadTab.news, 'Новини'),
+          tab(_HeadTab.random, 'Інкогніто'),
         ],
       ),
     );
@@ -344,10 +352,32 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 staff ? '${widget.me.username} · ${widget.me.role}' : widget.me.username,
                 style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: kTextMain),
               ),
-              TextButton(
-                onPressed: _logout,
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(10, 20)),
-                child: const Text('Вийти', style: TextStyle(fontSize: 12, color: kTextMuted)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    onPressed: _openIncognito,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(10, 20),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Інкогніто',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kAccentPink),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  TextButton(
+                    onPressed: _logout,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(10, 20),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('Вийти', style: TextStyle(fontSize: 12, color: kTextMuted)),
+                  ),
+                ],
               ),
             ],
           ),

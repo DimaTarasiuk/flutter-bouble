@@ -7,11 +7,17 @@ import '../role_helpers.dart';
 import '../session_store.dart';
 import '../theme/tokens.dart';
 import '../widgets/announcement_popup.dart';
-import 'login_screen.dart';
 import 'conversations_list_screen.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  final VoidCallback onOpenRandom;
+  final void Function(String? notice) onLoggedOut;
+
+  const HomeShell({
+    super.key,
+    required this.onOpenRandom,
+    required this.onLoggedOut,
+  });
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -20,11 +26,10 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   final _api = ApiClient();
   final _appState = AppState();
-  /// Nested navigator for chats/profile — announcement overlay stays above (як на вебі).
   final _navKey = GlobalKey<NavigatorState>();
   AppUser? _me;
   bool _loading = true;
-  String? _loginNotice; // "banned" / "kicked" — показати на екрані входу після force_logout
+  bool _disposedPresence = false;
 
   @override
   void initState() {
@@ -46,7 +51,6 @@ class _HomeShellState extends State<HomeShell> {
           _appState.setFeedbackUnread(count);
         } catch (_) {}
       }
-      // force_logout до start(), щоб не пропустити подію одразу після connect.
       _appState.presence.events.listen((e) {
         if (e.type == 'force_logout') {
           final reason = e.raw['reason'] as String?;
@@ -56,7 +60,10 @@ class _HomeShellState extends State<HomeShell> {
       await _appState.start();
       if (mounted) setState(() => _me = me);
     } catch (_) {
-      if (mounted) _goToLogin();
+      if (mounted) {
+        await SessionStore.clear();
+        widget.onLoggedOut(null);
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -64,20 +71,27 @@ class _HomeShellState extends State<HomeShell> {
 
   Future<void> _handleForceLogout(String? reason) async {
     await SessionStore.clear();
-    _loginNotice = reason == 'banned' ? 'Акаунт заблоковано' : 'Вас відключив адміністратор';
-    if (mounted) _goToLogin();
+    final notice =
+        reason == 'banned' ? 'Акаунт заблоковано' : 'Вас відключив адміністратор';
+    if (!mounted) return;
+    widget.onLoggedOut(notice);
   }
 
-  void _goToLogin() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => LoginScreen(notice: _loginNotice)),
-      (route) => false,
-    );
+  Future<void> _handleLogout() async {
+    await SessionStore.clear();
+    if (!mounted) return;
+    widget.onLoggedOut(null);
+  }
+
+  void _disposePresence() {
+    if (_disposedPresence) return;
+    _disposedPresence = true;
+    _appState.disposeAll();
   }
 
   @override
   void dispose() {
-    _appState.disposeAll();
+    _disposePresence();
     super.dispose();
   }
 
@@ -99,11 +113,15 @@ class _HomeShellState extends State<HomeShell> {
       builder: (context, _) {
         return Stack(
           children: [
-            // Чати / профіль пушаться сюди — попап лишається зверху, як на вебі.
             Navigator(
               key: _navKey,
               onGenerateRoute: (_) => MaterialPageRoute(
-                builder: (_) => ConversationsListScreen(appState: _appState, me: me),
+                builder: (_) => ConversationsListScreen(
+                  appState: _appState,
+                  me: me,
+                  onOpenIncognito: widget.onOpenRandom,
+                  onLogout: _handleLogout,
+                ),
               ),
             ),
             if (_appState.announcementQueue.isNotEmpty)

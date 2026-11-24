@@ -177,7 +177,6 @@ class Avatar extends StatelessWidget {
         Container(
           width: size,
           height: size,
-          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: bg,
             shape: BoxShape.circle,
@@ -196,13 +195,17 @@ class Avatar extends StatelessWidget {
                   ]
                 : null,
           ),
-          child: Text(
-            _initials,
-            style: TextStyle(
-              color: initialsColor,
-              fontWeight: FontWeight.w800,
-              fontSize: size * 0.36,
-              letterSpacing: size * 0.36 * 0.02,
+          child: Center(
+            child: Text(
+              _initials,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: initialsColor,
+                fontWeight: FontWeight.w800,
+                fontSize: size * 0.36,
+                height: 1.0,
+                leadingDistribution: TextLeadingDistribution.even,
+              ),
             ),
           ),
         ),

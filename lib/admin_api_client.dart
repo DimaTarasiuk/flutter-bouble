@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'api_client.dart';
 import 'config.dart';
 import 'models_admin.dart';
+import 'random/random_models.dart';
 import 'session_store.dart';
 
 class AdminApiClient {
@@ -147,5 +148,67 @@ class AdminApiClient {
     if (resp.statusCode != 200 && resp.statusCode != 204) {
       throw ApiException(resp.statusCode, _extractError(resp));
     }
+  }
+
+  Future<List<RandomSessionAdmin>> randomSessions({
+    String status = 'all',
+    int limit = 50,
+  }) async {
+    final resp = await http
+        .get(
+          await _uri(
+            '/api/admin/random/sessions?status=${Uri.encodeQueryComponent(status)}&limit=$limit',
+          ),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200) {
+      final list = jsonDecode(resp.body) as List;
+      return list
+          .map((e) => RandomSessionAdmin.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
+  }
+
+  Future<RandomSessionAdminDetail> randomSession(int id) async {
+    final resp = await http
+        .get(await _uri('/api/admin/random/sessions/$id'), headers: await _headers())
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200) {
+      return RandomSessionAdminDetail.fromJson(
+        jsonDecode(resp.body) as Map<String, dynamic>,
+      );
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
+  }
+
+  Future<void> deleteRandomSession(int id) async {
+    final resp = await http
+        .delete(
+          await _uri('/api/admin/random/sessions/$id'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200 && resp.statusCode != 204) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+  }
+
+  Future<int> deleteAllEndedRandomSessions() async {
+    final resp = await http
+        .delete(
+          await _uri('/api/admin/random/sessions'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      if (data is Map && data['deleted'] is num) {
+        return (data['deleted'] as num).toInt();
+      }
+      return 0;
+    }
+    throw ApiException(resp.statusCode, _extractError(resp));
   }
 }

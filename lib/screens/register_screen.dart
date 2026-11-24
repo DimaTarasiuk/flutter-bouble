@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../widgets/booblify_logo.dart';
 import '../widgets/neu.dart';
-import 'home_shell.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final VoidCallback? onRegistered;
+
+  const RegisterScreen({super.key, this.onRegistered});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -63,9 +64,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         gender: _gender,
       );
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeShell()),
-      );
+      Navigator.of(context).pop();
+      widget.onRegistered?.call();
     } on ApiException catch (e) {
       setState(() => _error = e.userMessage);
     } catch (_) {

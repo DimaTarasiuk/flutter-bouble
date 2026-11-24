@@ -5,11 +5,20 @@ import '../config.dart';
 import '../widgets/booblify_logo.dart';
 import '../widgets/neu.dart';
 import 'register_screen.dart';
-import 'home_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? notice;
-  const LoginScreen({super.key, this.notice});
+  final bool fromRandom;
+  final VoidCallback? onBackToRandom;
+  final VoidCallback? onLoggedIn;
+
+  const LoginScreen({
+    super.key,
+    this.notice,
+    this.fromRandom = false,
+    this.onBackToRandom,
+    this.onLoggedIn,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -65,9 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _api.login(login, password);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeShell()),
-      );
+      widget.onLoggedIn?.call();
     } on ApiException catch (e) {
       setState(() {
         _error = e.userMessage;
@@ -120,11 +127,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final showIncognito = widget.fromRandom && widget.onBackToRandom != null;
     return Scaffold(
       backgroundColor: kBg,
       body: SafeArea(
         child: Stack(
           children: [
+            Positioned(
+              top: 8,
+              left: 8,
+              child: showIncognito
+                  ? TextButton(
+                      onPressed: widget.onBackToRandom,
+                      child: const Text(
+                        'Інкогніто',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: kAccentPink,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
             Positioned(
               top: 8,
               right: 8,
@@ -209,7 +234,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       GestureDetector(
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => RegisterScreen(
+                                onRegistered: widget.onLoggedIn,
+                              ),
+                            ),
                           );
                         },
                         child: const Text(

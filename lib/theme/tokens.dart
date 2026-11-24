@@ -29,7 +29,21 @@ const Color kDivider = Color.fromRGBO(163, 177, 198, 0.35);
 const Color kMyBubble = Color(0xFFFFFFFF);
 const Color kTheirBubble = Color(0xFFF5E8EE);
 
+/// Random-chat bubbles by sender gender (web GENDER_BUBBLE)
+const Color kRandomBubbleMale = Color(0xFFDBEAFE);
+const Color kRandomBubbleMaleShadow = Color(0xFFA9BFDC);
+const Color kRandomBubbleFemale = Color(0xFFFCE7F3);
+const Color kRandomBubbleFemaleShadow = Color(0xFFE0B4CC);
+
+Color randomBubbleBg(String? gender) =>
+    gender == 'female' ? kRandomBubbleFemale : kRandomBubbleMale;
+
+Color randomBubbleShadow(String? gender) =>
+    gender == 'female' ? kRandomBubbleFemaleShadow : kRandomBubbleMaleShadow;
+
 const Color kDangerRed = Color(0xFFD9534F);
+
+const int kMaxMessageLen = 1000;
 
 // Аліаси для старих екранів (login/register)
 const Color kTextDark = kTextMain;

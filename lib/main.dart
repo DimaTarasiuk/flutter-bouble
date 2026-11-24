@@ -3,8 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'api_client.dart';
 import 'session_store.dart';
 import 'theme/tokens.dart';
-import 'screens/login_screen.dart';
-import 'screens/home_shell.dart';
+import 'screens/app_shell.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,8 +26,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Перевіряє, чи є збережений токен і чи він досі валідний (GET /api/me),
-/// перш ніж показати екран входу або одразу головний екран.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -79,6 +76,9 @@ class _AuthGateState extends State<AuthGate> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    return _hasSession ? const HomeShell() : const LoginScreen();
+    return AppShell(
+      initialView: _hasSession ? AppView.account : AppView.random,
+      hasSession: _hasSession,
+    );
   }
 }
