@@ -18,6 +18,9 @@ dependencies:
   audioplayers: ^6.1.0
   fl_chart: ^0.69.0
   flutter_inset_shadow: ^2.0.3
+  package_info_plus: ^8.0.0
+  path_provider: ^2.1.4
+  open_filex: ^4.5.0
 
 # CI resolved a newer JNI-based shared_preferences_android that crashes on
 # launch (NoSuchMethodError ...SharedPreferencesApiRegistrar.getAll) -> app hangs on loading.

@@ -4,6 +4,7 @@ import '../api_client.dart';
 import '../config.dart';
 import '../widgets/booblify_logo.dart';
 import '../widgets/neu.dart';
+import '../widgets/update_button.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -153,9 +154,15 @@ class _LoginScreenState extends State<LoginScreen> {
             Positioned(
               top: 8,
               right: 8,
-              child: IconButton(
-                icon: const Icon(Icons.settings_outlined, color: kTextGray),
-                onPressed: _showServerSettings,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const UpdateButton(compact: true),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: kTextGray),
+                    onPressed: _showServerSettings,
+                  ),
+                ],
               ),
             ),
             Center(
