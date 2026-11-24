@@ -10,11 +10,13 @@ import '../widgets/announcement_popup.dart';
 import 'conversations_list_screen.dart';
 
 class HomeShell extends StatefulWidget {
+  final bool active;
   final VoidCallback onOpenRandom;
   final void Function(String? notice) onLoggedOut;
 
   const HomeShell({
     super.key,
+    this.active = true,
     required this.onOpenRandom,
     required this.onLoggedOut,
   });
@@ -27,6 +29,7 @@ class _HomeShellState extends State<HomeShell> {
   final _api = ApiClient();
   final _appState = AppState();
   final _navKey = GlobalKey<NavigatorState>();
+  late final ValueNotifier<bool> _listActive;
   AppUser? _me;
   bool _loading = true;
   bool _disposedPresence = false;
@@ -34,7 +37,16 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    _listActive = ValueNotifier(widget.active);
     _init();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.active != widget.active) {
+      _listActive.value = widget.active;
+    }
   }
 
   Future<void> _init() async {
@@ -91,6 +103,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    _listActive.dispose();
     _disposePresence();
     super.dispose();
   }
@@ -108,37 +121,43 @@ class _HomeShellState extends State<HomeShell> {
     }
 
     final me = _me!;
-    return AnimatedBuilder(
-      animation: _appState,
-      builder: (context, _) {
-        return Stack(
-          children: [
-            Navigator(
-              key: _navKey,
-              onGenerateRoute: (_) => MaterialPageRoute(
-                builder: (_) => ConversationsListScreen(
-                  appState: _appState,
-                  me: me,
-                  onOpenIncognito: widget.onOpenRandom,
-                  onLogout: _handleLogout,
-                ),
+
+    Widget buildBody() {
+      return Stack(
+        children: [
+          Navigator(
+            key: _navKey,
+            onGenerateRoute: (_) => MaterialPageRoute(
+              builder: (_) => ConversationsListScreen(
+                appState: _appState,
+                me: me,
+                listActive: _listActive,
+                onOpenIncognito: widget.onOpenRandom,
+                onLogout: _handleLogout,
               ),
             ),
-            if (_appState.announcementQueue.isNotEmpty)
-              AnnouncementPopup(
-                announcement: _appState.announcementQueue.first,
-                remaining: _appState.announcementQueue.length - 1,
-                onNext: () async {
-                  final a = _appState.announcementQueue.first;
-                  try {
-                    await _api.ackAnnouncement(a.id);
-                  } catch (_) {}
-                  _appState.dismissAnnouncement(a);
-                },
-              ),
-          ],
-        );
-      },
+          ),
+          if (widget.active && _appState.announcementQueue.isNotEmpty)
+            AnnouncementPopup(
+              announcement: _appState.announcementQueue.first,
+              remaining: _appState.announcementQueue.length - 1,
+              onNext: () async {
+                final a = _appState.announcementQueue.first;
+                try {
+                  await _api.ackAnnouncement(a.id);
+                } catch (_) {}
+                _appState.dismissAnnouncement(a);
+              },
+            ),
+        ],
+      );
+    }
+
+    // Avoid rebuilding the whole navigator on every presence tick while Incognito is open.
+    if (!widget.active) return buildBody();
+    return AnimatedBuilder(
+      animation: _appState,
+      builder: (context, _) => buildBody(),
     );
   }
 }

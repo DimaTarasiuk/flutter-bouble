@@ -24,6 +24,7 @@ enum _HeadTab { chats, users, stats, news, random }
 class ConversationsListScreen extends StatefulWidget {
   final AppState appState;
   final AppUser me;
+  final ValueNotifier<bool> listActive;
   final VoidCallback onOpenIncognito;
   final Future<void> Function() onLogout;
 
@@ -31,6 +32,7 @@ class ConversationsListScreen extends StatefulWidget {
     super.key,
     required this.appState,
     required this.me,
+    required this.listActive,
     required this.onOpenIncognito,
     required this.onLogout,
   });
@@ -68,10 +70,21 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     _loadHintState();
     _searchController.addListener(_onSearchChanged);
     widget.appState.addListener(_onAppState);
+    widget.listActive.addListener(_onListActiveChanged);
+  }
+
+  void _onListActiveChanged() {
+    if (!mounted || !widget.listActive.value) return;
+    setState(() {});
+    final rev = widget.appState.conversationsRevision;
+    if (rev != _seenConversationsRevision) {
+      _seenConversationsRevision = rev;
+      _scheduleConversationsReload();
+    }
   }
 
   void _onAppState() {
-    if (!mounted) return;
+    if (!mounted || !widget.listActive.value) return;
     // Presence / onlineCount / feedback — потрібен setState, щоб рядки чатів
     // оновлювались у реальному часі (не лише через батьківський AnimatedBuilder).
     setState(() {});
@@ -194,6 +207,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
 
   @override
   void dispose() {
+    widget.listActive.removeListener(_onListActiveChanged);
     widget.appState.removeListener(_onAppState);
     _debounce?.cancel();
     _reloadDebounce?.cancel();

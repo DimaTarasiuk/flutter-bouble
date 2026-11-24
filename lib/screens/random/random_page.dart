@@ -480,7 +480,6 @@ class _RandomPageState extends State<RandomPage>
               ],
             ),
           ),
-          const UpdateButton(compact: true),
           TextButton(
             onPressed: widget.onOpenAccount,
             style: TextButton.styleFrom(
@@ -505,21 +504,30 @@ class _RandomPageState extends State<RandomPage>
   Widget _buildVersionFooter() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: FutureBuilder<String>(
-        future: _appVersionLabel(),
-        builder: (context, snap) {
-          final v = snap.data;
-          if (v == null || v.isEmpty) return const SizedBox.shrink();
-          return Text(
-            v,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: kTextMuted,
-            ),
-          );
-        },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const UpdateButton(compact: true),
+          FutureBuilder<String>(
+            future: _appVersionLabel(),
+            builder: (context, snap) {
+              final v = snap.data;
+              if (v == null || v.isEmpty) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  v,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: kTextMuted,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

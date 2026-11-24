@@ -23,8 +23,6 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  static const _fade = Duration(milliseconds: 150);
-
   late AppView _view;
   late bool _hasSession;
   String? _loginNotice;
@@ -71,11 +69,10 @@ class _AppShellState extends State<AppShell> {
   Widget _layer({required bool visible, required Widget child}) {
     return TickerMode(
       enabled: visible,
-      child: IgnorePointer(
-        ignoring: !visible,
-        child: AnimatedOpacity(
-          opacity: visible ? 1 : 0,
-          duration: _fade,
+      child: Offstage(
+        offstage: !visible,
+        child: IgnorePointer(
+          ignoring: !visible,
           child: child,
         ),
       ),
@@ -83,14 +80,16 @@ class _AppShellState extends State<AppShell> {
   }
 
   Widget _accountBody() {
+    final accountVisible = _view == AppView.account;
     if (_hasSession) {
       return HomeShell(
         key: ValueKey('home-$_accountGeneration'),
+        active: accountVisible,
         onOpenRandom: showRandom,
         onLoggedOut: (notice) => _handleLoggedOut(notice: notice),
       );
     }
-    if (_view == AppView.account) {
+    if (accountVisible) {
       return LoginScreen(
         key: ValueKey('login-$_accountGeneration'),
         notice: _loginNotice,
