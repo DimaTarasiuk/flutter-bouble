@@ -3,14 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:package_info_plus/package_info_plus.dart';
+
 import '../../api_client.dart';
 import '../../random/random_api_client.dart';
 import '../../random/random_models.dart';
 import '../../random/random_session_store.dart';
 import '../../random/random_ws_service.dart';
+import '../../update/app_update_service.dart';
 import '../../widgets/booblify_logo.dart';
 import '../../widgets/emoji_panel.dart';
 import '../../widgets/neu.dart';
+import '../../widgets/update_button.dart';
 
 enum _Phase { form, searching, chat, peerLeft }
 
@@ -59,6 +63,12 @@ class _RandomPageState extends State<RandomPage>
 
   late final AnimationController _pulse;
 
+  static Future<String> _appVersionLabel() {
+    return PackageInfo.fromPlatform().then((info) {
+      return 'v ${info.version}';
+    }).catchError((_) => '');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +77,8 @@ class _RandomPageState extends State<RandomPage>
       vsync: this,
       duration: const Duration(milliseconds: 1100),
     )..repeat(reverse: true);
+    unawaited(AppUpdateService.instance.init());
+    unawaited(AppUpdateService.instance.checkOnce());
     _bootstrap();
   }
 
@@ -449,23 +461,33 @@ class _RandomPageState extends State<RandomPage>
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                BooblifyLogo(),
-                SizedBox(height: 2),
-                Text(
-                  'Інкогніто',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: kTextMuted,
-                  ),
+                const BooblifyLogo(),
+                const SizedBox(height: 2),
+                FutureBuilder<String>(
+                  future: _appVersionLabel(),
+                  builder: (context, snap) {
+                    final v = snap.data;
+                    final label = (v == null || v.isEmpty)
+                        ? 'Інкогніто'
+                        : 'Інкогніто · $v';
+                    return Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: kTextMuted,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
+          const UpdateButton(compact: true),
           TextButton(
             onPressed: widget.onOpenAccount,
             style: TextButton.styleFrom(
