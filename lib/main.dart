@@ -4,8 +4,13 @@ import 'api_client.dart';
 import 'session_store.dart';
 import 'theme/tokens.dart';
 import 'screens/app_shell.dart';
+import 'update/app_update_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppUpdateService.instance.init();
+  // Fire-and-forget: one version check, not a poll loop.
+  AppUpdateService.instance.checkOnce();
   runApp(const MyApp());
 }
 

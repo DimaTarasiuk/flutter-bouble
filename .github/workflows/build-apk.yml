@@ -25,29 +25,59 @@ jobs:
       - name: Generate Android platform files
         run: flutter create --project-name bouble_chat --org com.bouble --platforms=android .
 
-      - name: Add Internet permission
+      - name: Add Internet + install permissions
         run: |
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>' android/app/src/main/AndroidManifest.xml
 
       - name: Set app display name
         run: |
           sed -i 's/android:label="[^"]*"/android:label="Bouble Chat"/' android/app/src/main/AndroidManifest.xml
 
+      - name: Allow cleartext HTTP traffic
+        run: |
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+
+      - name: Add FileProvider for APK install
+        run: |
+          mkdir -p android/app/src/main/res/xml
+          cat > android/app/src/main/res/xml/file_paths.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths>
+            <cache-path name="cache" path="." />
+            <external-cache-path name="external_cache" path="." />
+          </paths>
+          EOF
+          sed -i 's/^[[:space:]]*//' android/app/src/main/res/xml/file_paths.xml
+          # Insert FileProvider before </application>
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("android/app/src/main/AndroidManifest.xml")
+          text = path.read_text()
+          provider = '''
+                  <provider
+                      android:name="androidx.core.content.FileProvider"
+                      android:authorities="${applicationId}.fileprovider"
+                      android:exported="false"
+                      android:grantUriPermissions="true">
+                      <meta-data
+                          android:name="android.support.FILE_PROVIDER_PATHS"
+                          android:resource="@xml/file_paths" />
+                  </provider>
+          '''
+          if "FileProvider" not in text:
+              text = text.replace("</application>", provider + "\n    </application>")
+              path.write_text(text)
+          PY
+
       - name: Check Android Manifest
         run: |
           echo "===== AndroidManifest.xml ====="
           cat android/app/src/main/AndroidManifest.xml
-          echo "===== INTERNET permission ====="
-          if grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml; then
-            echo "INTERNET permission FOUND"
-          else
-            echo "INTERNET permission NOT FOUND"
-            exit 1
-          fi
-
-      - name: Allow cleartext HTTP traffic
-        run: |
-          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.REQUEST_INSTALL_PACKAGES' android/app/src/main/AndroidManifest.xml
+          grep -q 'FileProvider' android/app/src/main/AndroidManifest.xml
+          test -f android/app/src/main/res/xml/file_paths.xml
 
       - name: Prepare signing from GitHub Secrets
         env:
@@ -225,3 +255,30 @@ jobs:
           tag_name: latest
           name: Latest build
           files: release-files/*
+
+      - name: Notify backend of new Android APK
+        if: success()
+        env:
+          APP_VERSION_TOKEN: ${{ secrets.APP_VERSION_TOKEN }}
+          APP_VERSION_API_URL: ${{ secrets.APP_VERSION_API_URL }}
+        run: |
+          if [ ! -f release-files/bouble-chat.apk ]; then
+            echo "No Android APK in this release; skip version notify"
+            exit 0
+          fi
+          if [ -z "$APP_VERSION_TOKEN" ]; then
+            echo "APP_VERSION_TOKEN secret not set; skip version notify"
+            exit 0
+          fi
+          API_URL="${APP_VERSION_API_URL:-https://bouble-chat.onrender.com/api/admin/app-version}"
+          # GitHub release asset URL for tag "latest"
+          APK_URL="https://github.com/${{ github.repository }}/releases/download/latest/bouble-chat.apk"
+          BUILD="${{ github.run_number }}"
+          VERSION="1.0.${BUILD}"
+          echo "POST $API_URL build=$BUILD version=$VERSION"
+          curl -fsS -X POST "$API_URL" \
+            -H "Authorization: Bearer $APP_VERSION_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"build\":${BUILD},\"version\":\"${VERSION}\",\"apk_url\":\"${APK_URL}\"}"
+          echo
+          echo "Backend notified"

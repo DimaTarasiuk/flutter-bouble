@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'models.dart';
 import 'presence_service.dart';
 import 'sound_service.dart';
+import 'update/app_update_service.dart';
 
 class AppState extends ChangeNotifier {
   final PresenceService presence = PresenceService();
@@ -98,7 +99,15 @@ class AppState extends ChangeNotifier {
         online = _parseOnlineList(e.raw['online']);
         final count = _asInt(e.raw['online_count']);
         if (count != null) onlineCount = count;
+        final update = e.raw['app_update'];
+        if (update is Map<String, dynamic>) {
+          AppUpdateService.instance.applyRemote(update);
+        }
         notifyListeners();
+        break;
+
+      case 'app_update':
+        AppUpdateService.instance.applyRemote(e.raw);
         break;
 
       case 'presence':

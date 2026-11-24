@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../app_state.dart';
 import '../api_client.dart';
 import '../models.dart';
@@ -7,6 +8,7 @@ import '../role_helpers.dart';
 import '../session_store.dart';
 import '../theme/tokens.dart';
 import '../widgets/neu.dart';
+import '../widgets/update_button.dart';
 import 'chat_screen.dart';
 import '../widgets/booblify_logo.dart';
 import 'profile_screen.dart';
@@ -51,6 +53,12 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
   bool _profileHintSeen = true;
   _HeadTab _headTab = _HeadTab.chats;
   int _seenConversationsRevision = 0;
+
+  static Future<String> _appVersionLabel() {
+    return PackageInfo.fromPlatform().then((info) {
+      return 'v ${info.version}';
+    }).catchError((_) => '');
+  }
 
   @override
   void initState() {
@@ -223,31 +231,45 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
               ),
             Expanded(child: _buildBody(head, online)),
             if (!head)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: TextButton(
-                  onPressed: _openFeedback,
-                  child: const Text('feedback', style: TextStyle(color: kTextMuted)),
-                ),
+              _buildFeedbackFooter(
+                baseLabel: 'feedback',
+                onPressed: _openFeedback,
+                style: const TextStyle(color: kTextMuted),
               )
             else if (_headTab == _HeadTab.chats)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: TextButton(
-                  onPressed: _openFeedbackInbox,
-                  child: Text(
-                    widget.appState.feedbackUnread > 0
-                        ? 'feedbacks (${widget.appState.feedbackUnread})'
-                        : 'feedbacks',
-                    style: TextStyle(
-                      color: widget.appState.feedbackUnread > 0 ? kAccentPink : kTextMuted,
-                      fontWeight: widget.appState.feedbackUnread > 0 ? FontWeight.w800 : FontWeight.normal,
-                    ),
-                  ),
+              _buildFeedbackFooter(
+                baseLabel: widget.appState.feedbackUnread > 0
+                    ? 'feedbacks (${widget.appState.feedbackUnread})'
+                    : 'feedbacks',
+                onPressed: _openFeedbackInbox,
+                style: TextStyle(
+                  color: widget.appState.feedbackUnread > 0 ? kAccentPink : kTextMuted,
+                  fontWeight: widget.appState.feedbackUnread > 0 ? FontWeight.w800 : FontWeight.normal,
                 ),
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFeedbackFooter({
+    required String baseLabel,
+    required VoidCallback onPressed,
+    required TextStyle style,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: FutureBuilder<String>(
+        future: _appVersionLabel(),
+        builder: (context, snap) {
+          final v = snap.data;
+          final label = (v == null || v.isEmpty) ? baseLabel : '$baseLabel · $v';
+          return TextButton(
+            onPressed: onPressed,
+            child: Text(label, style: style),
+          );
+        },
       ),
     );
   }
@@ -347,9 +369,15 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                staff ? '${widget.me.username} · ${widget.me.role}' : widget.me.username,
-                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: kTextMain),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const UpdateButton(compact: true),
+                  Text(
+                    staff ? '${widget.me.username} · ${widget.me.role}' : widget.me.username,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: kTextMain),
+                  ),
+                ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
