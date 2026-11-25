@@ -273,46 +273,71 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 ),
               ),
             Expanded(child: _buildBody(head, online)),
-            if (!head)
-              _buildFeedbackFooter(
-                baseLabel: 'feedback',
-                onPressed: _openFeedback,
-                style: const TextStyle(color: kTextMuted),
-              )
-            else if (_headTab == _HeadTab.chats)
-              _buildFeedbackFooter(
-                baseLabel: widget.appState.feedbackUnread > 0
-                    ? 'feedbacks (${widget.appState.feedbackUnread})'
-                    : 'feedbacks',
-                onPressed: _openFeedbackInbox,
-                style: TextStyle(
-                  color: widget.appState.feedbackUnread > 0 ? kAccentPink : kTextMuted,
-                  fontWeight: widget.appState.feedbackUnread > 0 ? FontWeight.w800 : FontWeight.normal,
-                ),
-              ),
+            _buildBottomBar(head),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFeedbackFooter({
-    required String baseLabel,
-    required VoidCallback onPressed,
-    required TextStyle style,
-  }) {
+  Widget _buildBottomBar(bool head) {
+    final showFeedback = !head || _headTab == _HeadTab.chats;
+    String? baseLabel;
+    VoidCallback? onPressed;
+    TextStyle style = const TextStyle(color: kTextMuted);
+
+    if (!head) {
+      baseLabel = 'feedback';
+      onPressed = _openFeedback;
+    } else if (_headTab == _HeadTab.chats) {
+      baseLabel = widget.appState.feedbackUnread > 0
+          ? 'feedbacks (${widget.appState.feedbackUnread})'
+          : 'feedbacks';
+      onPressed = _openFeedbackInbox;
+      style = TextStyle(
+        color: widget.appState.feedbackUnread > 0 ? kAccentPink : kTextMuted,
+        fontWeight: widget.appState.feedbackUnread > 0 ? FontWeight.w800 : FontWeight.normal,
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: FutureBuilder<String>(
-        future: _appVersionLabel(),
-        builder: (context, snap) {
-          final v = snap.data;
-          final label = (v == null || v.isEmpty) ? baseLabel : '$baseLabel · $v';
-          return TextButton(
-            onPressed: onPressed,
-            child: Text(label, style: style),
-          );
-        },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const UpdateButton(compact: true),
+          if (showFeedback && baseLabel != null && onPressed != null)
+            FutureBuilder<String>(
+              future: _appVersionLabel(),
+              builder: (context, snap) {
+                final v = snap.data;
+                final label = (v == null || v.isEmpty) ? baseLabel! : '$baseLabel · $v';
+                return TextButton(
+                  onPressed: onPressed,
+                  child: Text(label, style: style),
+                );
+              },
+            )
+          else
+            FutureBuilder<String>(
+              future: _appVersionLabel(),
+              builder: (context, snap) {
+                final v = snap.data;
+                if (v == null || v.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    v,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: kTextMuted,
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
     );
   }
@@ -412,15 +437,9 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const UpdateButton(compact: true),
-                  Text(
-                    staff ? '${widget.me.username} · ${widget.me.role}' : widget.me.username,
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: kTextMain),
-                  ),
-                ],
+              Text(
+                staff ? '${widget.me.username} · ${widget.me.role}' : widget.me.username,
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: kTextMain),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,

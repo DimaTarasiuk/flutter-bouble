@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -46,7 +47,7 @@ class AppUpdateInfo {
 }
 
 /// Push-driven Android update offer. No GitHub polling.
-class AppUpdateService extends ChangeNotifier {
+class AppUpdateService extends ChangeNotifier with WidgetsBindingObserver {
   AppUpdateService._();
   static final AppUpdateService instance = AppUpdateService._();
 
@@ -57,9 +58,11 @@ class AppUpdateService extends ChangeNotifier {
   String _localVersion = '';
   bool _ready = false;
   bool _checking = false;
+  bool _observing = false;
   bool _downloading = false;
   double? _progress;
   String? _error;
+  DateTime? _lastCheckAt;
 
   AppUpdateInfo? get available => _available;
   bool get hasUpdate => _available != null;
@@ -84,8 +87,19 @@ class AppUpdateService extends ChangeNotifier {
     if (!_ready && isAndroid) {
       await _restorePending();
     }
+    if (!_observing) {
+      WidgetsBinding.instance.addObserver(this);
+      _observing = true;
+    }
     _ready = true;
     notifyListeners();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      checkOnce();
+    }
   }
 
   Future<void> _restorePending() async {
@@ -139,11 +153,17 @@ class AppUpdateService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// One lightweight GET on cold start (login / shell). Not a poll loop.
+  /// Lightweight GET on cold start / resume. Not a poll loop.
   Future<void> checkOnce() async {
     if (!isAndroid || _checking) return;
+    final now = DateTime.now();
+    if (_lastCheckAt != null &&
+        now.difference(_lastCheckAt!) < const Duration(seconds: 20)) {
+      return;
+    }
     await init();
     _checking = true;
+    _lastCheckAt = now;
     try {
       final base = await AppConfig.getBaseUrl();
       final uri = Uri.parse('$base/api/app/version');
@@ -154,7 +174,8 @@ class AppUpdateService extends ChangeNotifier {
         await applyRemote(body);
       }
     } catch (_) {
-      // ignore — offline / waking server
+      // Allow a quicker retry after a failed/waking-server attempt.
+      _lastCheckAt = null;
     } finally {
       _checking = false;
     }

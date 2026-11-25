@@ -154,16 +154,16 @@ class _LoginScreenState extends State<LoginScreen> {
             Positioned(
               top: 8,
               right: 8,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const UpdateButton(compact: true),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined, color: kTextGray),
-                    onPressed: _showServerSettings,
-                  ),
-                ],
+              child: IconButton(
+                icon: const Icon(Icons.settings_outlined, color: kTextGray),
+                onPressed: _showServerSettings,
               ),
+            ),
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 14,
+              child: Center(child: UpdateButton(compact: true)),
             ),
             Center(
               child: SingleChildScrollView(
