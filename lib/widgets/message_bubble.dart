@@ -121,9 +121,14 @@ class _MessageBubbleState extends State<MessageBubble>
     );
   }
 
+  /// Один рядок превʼю: переноси й довгі пробіли не роздувають цитату.
+  static String _replyPreviewLine(String raw) {
+    return raw.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
   Widget _buildReplyPreview() {
     final from = widget.replyPreviewFrom ?? '';
-    final text = widget.replyPreviewText ?? '';
+    final text = _replyPreviewLine(widget.replyPreviewText ?? '');
     if (text.isEmpty && from.isEmpty) return const SizedBox.shrink();
 
     final insetBg = widget.isMine
@@ -134,20 +139,21 @@ class _MessageBubbleState extends State<MessageBubble>
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
       decoration: neuBox(inset: true, d: 2.5, b: 5, radius: 12, color: insetBg),
-      child: IntrinsicHeight(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 3,
-              decoration: BoxDecoration(
-                color: kAccentPink,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 32,
+            decoration: BoxDecoration(
+              color: kAccentPink,
+              borderRadius: BorderRadius.circular(2),
             ),
-            const SizedBox(width: 8),
-            Column(
+          ),
+          const SizedBox(width: 8),
+          // Flexible дає тексту скінченну ширину, інакше довга цитата
+          // розтягує рядок за межі бульбашки (IntrinsicWidth + ellipsis без flex).
+          Flexible(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -155,6 +161,7 @@ class _MessageBubbleState extends State<MessageBubble>
                   Text(
                     from,
                     maxLines: 1,
+                    softWrap: false,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12.5,
@@ -167,13 +174,14 @@ class _MessageBubbleState extends State<MessageBubble>
                   Text(
                     text,
                     maxLines: 1,
+                    softWrap: false,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 13, color: kTextMuted),
                   ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
