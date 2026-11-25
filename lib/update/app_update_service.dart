@@ -189,20 +189,34 @@ class AppUpdateService extends ChangeNotifier with WidgetsBindingObserver {
     _error = null;
     notifyListeners();
 
+    HttpClient? client;
     try {
-      final client = http.Client();
+      client = HttpClient();
+      client.userAgent = 'BoubleChat/${_localVersion.isEmpty ? "1.0" : _localVersion}';
+      client.connectionTimeout = const Duration(seconds: 30);
+
+      final request = await client
+          .getUrl(Uri.parse(info.apkUrl))
+          .timeout(const Duration(seconds: 30));
+      request.followRedirects = true;
+      request.maxRedirects = 8;
+
+      final response =
+          await request.close().timeout(const Duration(seconds: 60));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+
+      final total = response.contentLength;
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/bouble-chat-update.apk');
+      if (await file.exists()) {
+        await file.delete();
+      }
+      final sink = file.openWrite();
+      var received = 0;
       try {
-        final req = http.Request('GET', Uri.parse(info.apkUrl));
-        final res = await client.send(req).timeout(const Duration(minutes: 5));
-        if (res.statusCode != 200) {
-          throw Exception('download failed (${res.statusCode})');
-        }
-        final total = res.contentLength ?? 0;
-        final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/bouble-chat-update.apk');
-        final sink = file.openWrite();
-        var received = 0;
-        await for (final chunk in res.stream) {
+        await for (final chunk in response.timeout(const Duration(minutes: 8))) {
           sink.add(chunk);
           received += chunk.length;
           if (total > 0) {
@@ -210,20 +224,28 @@ class AppUpdateService extends ChangeNotifier with WidgetsBindingObserver {
             notifyListeners();
           }
         }
-        await sink.close();
-
-        final result = await OpenFilex.open(file.path);
-        if (result.type != ResultType.done) {
-          _error = result.message.isNotEmpty
-              ? result.message
-              : 'Не вдалося відкрити інсталятор';
-        }
       } finally {
-        client.close();
+        await sink.close();
+      }
+
+      // Reject tiny/HTML error bodies mistaken for an APK.
+      if (received < 1024 * 1024) {
+        throw Exception('file too small ($received bytes)');
+      }
+
+      final result = await OpenFilex.open(file.path);
+      if (result.type != ResultType.done) {
+        _error = result.message.isNotEmpty
+            ? result.message
+            : 'Не вдалося відкрити інсталятор';
       }
     } catch (e) {
       _error = 'Помилка завантаження';
+      if (kDebugMode) {
+        debugPrint('APK download failed: $e');
+      }
     } finally {
+      client?.close(force: true);
       _downloading = false;
       _progress = null;
       notifyListeners();

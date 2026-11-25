@@ -441,36 +441,51 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 staff ? '${widget.me.username} · ${widget.me.role}' : widget.me.username,
                 style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: kTextMain),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton(
-                    onPressed: _openIncognito,
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(10, 20),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'Інкогніто',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kAccentPink),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  TextButton(
-                    onPressed: _logout,
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(10, 20),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text('Вийти', style: TextStyle(fontSize: 12, color: kTextMuted)),
-                  ),
-                ],
+              TextButton(
+                onPressed: _logout,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(10, 20),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Вийти', style: TextStyle(fontSize: 12, color: kTextMuted)),
               ),
             ],
           ),
+          const SizedBox(width: 12),
+          _buildIncognitoButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildIncognitoButton() {
+    return NeuPress(
+      onTap: _openIncognito,
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: kBg,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: kShadowDark.withValues(alpha: 0.9),
+              offset: const Offset(4, 4),
+              blurRadius: 8,
+            ),
+            const BoxShadow(
+              color: kShadowLight,
+              offset: Offset(-4, -4),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: const Text(
+          '🎲',
+          style: TextStyle(fontSize: 18, height: 1.1),
+        ),
       ),
     );
   }
