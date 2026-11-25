@@ -124,7 +124,7 @@ class _UserCardScreenState extends State<UserCardScreen> {
   Future<void> _writeMessage() async {
     try {
       final conv = await _api.openConversation(widget.username);
-      if (!mounted) return;
+      if (!mounted || (conv.hidden && !widget.appState.hiddenVault)) return;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ChatScreen(appState: widget.appState, me: widget.me, conversation: conv),

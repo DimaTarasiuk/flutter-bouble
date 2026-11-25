@@ -261,6 +261,56 @@ class ApiClient {
     }
   }
 
+  Future<void> hideConversation(int id, {String? code, String? codeConfirm}) async {
+    final body = <String, dynamic>{};
+    if (code != null) {
+      body['code'] = code;
+      body['code_confirm'] = codeConfirm ?? '';
+    }
+    final resp = await http
+        .post(await _uri('/api/conversations/$id/hide'),
+            headers: await _authHeaders(), body: jsonEncode(body))
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+  }
+
+  Future<void> unhideConversation(int id) async {
+    final resp = await http
+        .post(await _uri('/api/conversations/$id/unhide'), headers: await _authHeaders())
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+  }
+
+  Future<void> dismissConversation(int id) async {
+    final resp = await http
+        .post(await _uri('/api/conversations/$id/dismiss'), headers: await _authHeaders())
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+  }
+
+  Future<({bool ok, List<Conversation> chats})> unlockHidden(String code) async {
+    final resp = await http
+        .post(await _uri('/api/hidden/unlock'),
+            headers: await _authHeaders(), body: jsonEncode({'code': code}))
+        .timeout(const Duration(seconds: 60));
+    if (resp.statusCode != 200) {
+      throw ApiException(resp.statusCode, _extractError(resp));
+    }
+    final data = jsonDecode(resp.body);
+    if (data is! Map) return (ok: false, chats: <Conversation>[]);
+    final raw = data['chats'];
+    final chats = raw is List
+        ? raw.map((e) => Conversation.fromJson(e as Map<String, dynamic>)).toList()
+        : <Conversation>[];
+    return (ok: data['ok'] == true, chats: chats);
+  }
+
   Future<void> sendFeedback(String text) async {
     final resp = await http
         .post(await _uri('/api/feedback'),

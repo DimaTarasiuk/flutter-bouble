@@ -233,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                       const SizedBox(height: 26),
                       NeuButton(
-                        label: 'Увійти  →',
+                        label: 'Увійти',
                         onTap: _handleLogin,
                         loading: _loading,
                       ),

@@ -58,6 +58,8 @@ class Conversation {
   final String peerGender;
   final int unreadCount;
   final String createdAt;
+  final bool hidden;
+  final bool dismissed;
 
   Conversation({
     required this.id,
@@ -66,7 +68,20 @@ class Conversation {
     required this.peerGender,
     required this.unreadCount,
     required this.createdAt,
+    this.hidden = false,
+    this.dismissed = false,
   });
+
+  Conversation copyWith({int? unreadCount}) => Conversation(
+        id: id,
+        peerId: peerId,
+        peer: peer,
+        peerGender: peerGender,
+        unreadCount: unreadCount ?? this.unreadCount,
+        createdAt: createdAt,
+        hidden: hidden,
+        dismissed: dismissed,
+      );
 
   factory Conversation.fromJson(Map<String, dynamic> j) => Conversation(
         id: j['id'] as int,
@@ -75,6 +90,8 @@ class Conversation {
         peerGender: j['peer_gender'] as String? ?? '',
         unreadCount: j['unread_count'] as int? ?? 0,
         createdAt: j['created_at'] as String? ?? '',
+        hidden: j['hidden'] == true,
+        dismissed: j['dismissed'] == true,
       );
 }
 
