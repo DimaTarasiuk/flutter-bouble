@@ -24,6 +24,7 @@ class AppState extends ChangeNotifier {
   /// Збільшується на кожне вхідне `chat_message` поза активним чатом —
   /// список розмов може перезавантажитись і підтягнути unread з REST.
   int conversationsRevision = 0;
+  bool hiddenVault = false;
 
   bool _started = false;
 
@@ -41,6 +42,10 @@ class AppState extends ChangeNotifier {
     // (broadcast stream без слухачів дропає події) — юзери лишаються «Offline».
     presence.events.listen(_onEvent);
     await presence.connect();
+  }
+
+  void setHiddenVault(bool open) {
+    hiddenVault = open;
   }
 
   void setActiveConversation(int? id) {
@@ -143,6 +148,15 @@ class AppState extends ChangeNotifier {
             announcementQueue = [...announcementQueue, ann];
             notifyListeners();
           }
+        }
+        break;
+
+      case 'hidden_chat_message':
+        if (!hiddenVault) break;
+        final hiddenId = _asInt(e.raw['conversation_id']);
+        if (hiddenId != null && hiddenId != activeConversationId) {
+          unreadBump[hiddenId] = (unreadBump[hiddenId] ?? 0) + 1;
+          notifyListeners();
         }
         break;
 
