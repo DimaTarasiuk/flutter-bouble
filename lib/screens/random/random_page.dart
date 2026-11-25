@@ -966,6 +966,9 @@ class _RandomPageState extends State<RandomPage>
                       children: [
                         Text(
                           'Відповідь · ${_replyTo!.from}',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -973,8 +976,9 @@ class _RandomPageState extends State<RandomPage>
                           ),
                         ),
                         Text(
-                          _replyTo!.text,
+                          _replyTo!.text.replaceAll(RegExp(r'\s+'), ' ').trim(),
                           maxLines: 1,
+                          softWrap: false,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 12,
@@ -1203,23 +1207,38 @@ class _RandomBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (msg.replyTo != null) ...[
-                Text(
-                  msg.replyTo!.from,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: kAccentPink,
-                  ),
-                ),
-                Text(
-                  msg.replyTo!.text,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF6B7280),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            msg.replyTo!.from,
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: kAccentPink,
+                            ),
+                          ),
+                          Text(
+                            msg.replyTo!.text.replaceAll(RegExp(r'\s+'), ' ').trim(),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
               ],

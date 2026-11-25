@@ -571,6 +571,9 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Text(
                   'Відповідь · ${target.from}',
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 12.5,
                     color: kAccentPink,
@@ -579,8 +582,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  target.text,
+                  target.text.replaceAll(RegExp(r'\s+'), ' ').trim(),
                   maxLines: 1,
+                  softWrap: false,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12.5, color: kTextMuted),
                 ),
