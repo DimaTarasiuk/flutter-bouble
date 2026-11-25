@@ -48,14 +48,39 @@ class _ChatScreenState extends State<ChatScreen> {
   StreamSubscription? _wsSub;
   StreamSubscription? _presenceSub;
   bool _merging = false;
+  double _keyboardInset = 0;
 
   @override
   void initState() {
     super.initState();
     widget.appState.setActiveConversation(widget.conversation.id);
     _scrollController.addListener(_onScroll);
+    _inputFocus.addListener(_onInputFocus);
     _presenceSub = widget.appState.presence.events.listen(_onPresenceEvent);
     _bootstrap();
+  }
+
+  bool _nearBottom() {
+    if (!_scrollController.hasClients) return true;
+    // reverse: true — низ чату це offset 0.
+    return _scrollController.offset <= 80;
+  }
+
+  void _onInputFocus() {
+    if (_inputFocus.hasFocus && _nearBottom()) {
+      _scrollToBottom();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final inset = MediaQuery.viewInsetsOf(context).bottom;
+    final opening = inset > _keyboardInset + 1;
+    _keyboardInset = inset;
+    if (opening && _nearBottom()) {
+      _scrollToBottom(animated: false);
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -72,6 +97,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _ws.dispose();
     _scrollController.dispose();
     _inputController.dispose();
+    _inputFocus.removeListener(_onInputFocus);
     _inputFocus.dispose();
     super.dispose();
   }
@@ -432,6 +458,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
         return Scaffold(
           backgroundColor: kBg,
+          resizeToAvoidBottomInset: true,
           body: SafeArea(
             child: Column(
               children: [
@@ -469,6 +496,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Avatar(
             username: widget.conversation.peer,
             size: 38,
+            raised: true,
             showDot: true,
             online: peerOnline,
             gender: widget.conversation.peerGender,
@@ -637,7 +665,8 @@ class _ChatScreenState extends State<ChatScreen> {
               onSubmitted: (_) => _send(),
               radius: 22,
               insetDepth: 3,
-              verticalPadding: 8,
+              verticalPadding: 12,
+              fontSize: 18,
               trailing: GestureDetector(
                 onTap: () => setState(() => _showEmoji = !_showEmoji),
                 child: Icon(

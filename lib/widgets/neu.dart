@@ -17,6 +17,7 @@ class NeuTextField extends StatelessWidget {
   final double radius;
   final double insetDepth;
   final double verticalPadding;
+  final double fontSize;
 
   const NeuTextField({
     super.key,
@@ -33,6 +34,7 @@ class NeuTextField extends StatelessWidget {
     this.radius = 20,
     this.insetDepth = 4,
     this.verticalPadding = 16,
+    this.fontSize = 16,
   });
 
   @override
@@ -58,10 +60,10 @@ class NeuTextField extends StatelessWidget {
               maxLines: maxLines,
               focusNode: focusNode,
               onSubmitted: onSubmitted,
-              style: const TextStyle(fontSize: 16, color: kTextMain),
+              style: TextStyle(fontSize: fontSize, color: kTextMain),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(color: kTextMuted, fontSize: 16),
+                hintStyle: TextStyle(color: kTextMuted, fontSize: fontSize),
                 border: InputBorder.none,
                 isDense: true,
                 counterText: '',
